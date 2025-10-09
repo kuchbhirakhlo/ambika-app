@@ -1,0 +1,2 @@
+The Ambika Empire logo should be saved as logo.png in this directory.
+Please download the logo image provided in the message and save it as "logo.png" in this directory. 
