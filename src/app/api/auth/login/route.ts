@@ -19,7 +19,14 @@ export async function POST(request: NextRequest) {
     }
 
     const { db } = await connectToDatabase();
-    const user = await db.collection("users").findOne({ username });
+
+    // First check in users collection (admin)
+    let user = await db.collection("users").findOne({ username });
+
+    // If not found in users, check employees collection
+    if (!user) {
+      user = await db.collection("employees").findOne({ username });
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -28,9 +35,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Compare password (in a real app, use bcrypt.compare)
-    const isPasswordValid = password === user.password; // Temporary for demo
-    // For production: const isPasswordValid = await bcrypt.compare(password, user.password);
+    // Compare password using bcrypt for both users and employees
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -41,10 +47,10 @@ export async function POST(request: NextRequest) {
 
     // Create JWT token
     const token = jwt.sign(
-      { 
+      {
         id: user._id.toString(),
         username: user.username,
-        role: user.role 
+        role: user.role
       },
       process.env.JWT_SECRET || "fallback-secret-key-change-in-production",
       { expiresIn: "1d" }
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     // Create response with token
     return NextResponse.json(
-      { 
+      {
         success: true,
         user: userResponse,
         token,
