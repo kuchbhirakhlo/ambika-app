@@ -22,6 +22,8 @@ export default function EmployeesPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [notification, setNotification] = useState<{ type: string; message: string } | null>(null);
+    const [user, setUser] = useState<any>(null);
+    const [userLoading, setUserLoading] = useState(true);
 
     // Modal states
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -40,10 +42,34 @@ export default function EmployeesPage() {
         password: "",
     });
 
+    // Check user authentication and role
+    useEffect(() => {
+        const userStr = sessionStorage.getItem("user");
+        if (userStr) {
+            try {
+                const userData = JSON.parse(userStr);
+                setUser(userData);
+                if (userData.role !== 'admin') {
+                    router.push("/dashboard");
+                    return;
+                }
+            } catch {
+                router.push("/login");
+                return;
+            }
+        } else {
+            router.push("/login");
+            return;
+        }
+        setUserLoading(false);
+    }, [router]);
+
     // Fetch employees on load and when updated
     useEffect(() => {
-        fetchEmployees();
-    }, []);
+        if (!userLoading && user?.role === 'admin') {
+            fetchEmployees();
+        }
+    }, [userLoading, user]);
 
     const fetchEmployees = async () => {
         setLoading(true);
@@ -221,7 +247,16 @@ export default function EmployeesPage() {
                 </div>
             </div>
 
-            {loading ? (
+            {userLoading ? (
+                <div className="text-center py-10">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                    <p className="mt-2 text-gray-500">Loading...</p>
+                </div>
+            ) : !user || user.role !== 'admin' ? (
+                <div className="text-center py-10">
+                    <p className="text-gray-500">Access denied. Admin privileges required.</p>
+                </div>
+            ) : loading ? (
                 <div className="text-center py-10">
                     <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                     <p className="mt-2 text-gray-500">Loading employee data...</p>

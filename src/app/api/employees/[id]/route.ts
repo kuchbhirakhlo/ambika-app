@@ -50,10 +50,18 @@ export async function PUT(
         await connectMongo();
 
         const data = await request.json();
+        console.log('Updating employee', params.id, 'with data:', { ...data, password: data.password ? '***' : 'unchanged' });
+
+        // If password is provided and not empty, it will be hashed by the pre-save hook
+        // If password is empty or undefined, it won't be updated
+        const updateData = { ...data };
+        if (!updateData.password || updateData.password.trim() === '') {
+            delete updateData.password; // Don't update password if empty
+        }
 
         const updatedEmployee = await Employee.findByIdAndUpdate(
             params.id,
-            data,
+            updateData,
             { new: true, runValidators: true }
         );
 
@@ -64,12 +72,22 @@ export async function PUT(
             );
         }
 
+        console.log('Employee updated successfully:', updatedEmployee._id);
         return NextResponse.json(
             { message: 'Employee updated successfully', employee: updatedEmployee },
             { status: 200 }
         );
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error updating employee:', error);
+
+        // Handle duplicate key error
+        if (error.code === 11000) {
+            return NextResponse.json(
+                { error: 'Employee with this username or employee ID already exists' },
+                { status: 400 }
+            );
+        }
+
         return NextResponse.json(
             { error: 'Failed to update employee' },
             { status: 500 }

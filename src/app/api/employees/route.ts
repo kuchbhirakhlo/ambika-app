@@ -6,7 +6,9 @@ import Employee from '@/models/employee';
 const connectMongo = async () => {
     try {
         if (mongoose.connection.readyState !== 1) {
+            console.log('Connecting to MongoDB...');
             await mongoose.connect(process.env.MONGODB_URI || '');
+            console.log('MongoDB connected successfully');
         }
     } catch (error) {
         console.error('MongoDB connection error:', error);
@@ -37,9 +39,24 @@ export async function POST(request: NextRequest) {
         await connectMongo();
 
         const data = await request.json();
+        console.log('Creating employee with data:', { ...data, password: '***' });
+
+        // Ensure role is set to 'employee'
+        const employeeData = {
+            ...data,
+            role: 'employee'
+        };
 
         // Create a new employee with the data
-        const newEmployee = await Employee.create(data);
+        console.log('About to create employee in database...');
+        const newEmployee = await Employee.create(employeeData);
+        console.log('Employee created successfully:', newEmployee._id);
+        console.log('Employee data saved:', {
+            id: newEmployee._id,
+            username: newEmployee.username,
+            employeeId: newEmployee.employeeId,
+            role: newEmployee.role
+        });
 
         return NextResponse.json(
             { message: 'Employee created successfully', employee: newEmployee },
@@ -47,9 +64,22 @@ export async function POST(request: NextRequest) {
         );
     } catch (error: any) {
         console.error('Error creating employee:', error);
+        console.error('Error details:', {
+            message: error.message,
+            code: error.code,
+            name: error.name
+        });
+
+        // Handle duplicate key error
+        if (error.code === 11000) {
+            return NextResponse.json(
+                { error: 'Employee with this username or employee ID already exists' },
+                { status: 400 }
+            );
+        }
 
         return NextResponse.json(
-            { error: 'Failed to create employee' },
+            { error: 'Failed to create employee: ' + error.message },
             { status: 500 }
         );
     }

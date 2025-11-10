@@ -100,7 +100,7 @@ export default function Login() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 border border-[#34495e]/20 rounded-md focus:outline-none focus:ring-2 focus:ring-[#34495e]"
+              className="w-full px-3 py-2 border border-[#34495e]/20 rounded-md focus:outline-none focus:ring-2 text-black focus:ring-[#34495e]"
               placeholder="Enter your username"
               autoComplete="username"
             />
@@ -115,7 +115,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-[#34495e]/20 rounded-md focus:outline-none focus:ring-2 focus:ring-[#34495e]"
+              className="w-full px-3 py-2 border border-[#34495e]/20 rounded-md focus:outline-none focus:ring-2 text-black focus:ring-[#34495e]"
               placeholder="Enter your password"
               autoComplete="current-password"
             />

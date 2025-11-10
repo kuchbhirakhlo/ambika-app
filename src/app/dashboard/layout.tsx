@@ -89,16 +89,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      {/* Always visible menu with horizontal scroll */}
+      {/* Role-based Navigation Menu */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-4 overflow-x-auto py-1 scrollbar-hide">
-            <Link
-              href="/dashboard"
-              className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
-            >
-              Dashboard
-            </Link>
+            {user.role === 'admin' && (
+              <Link
+                href="/dashboard"
+                className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
+              >
+                Dashboard
+              </Link>
+            )}
             <Link
               href="/dashboard/sales"
               className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/sales' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
@@ -123,25 +125,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               Product
             </Link>
-            <Link
-              href="/dashboard/suppliers"
-              className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/suppliers' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
-            >
-              Supplier
-            </Link>
-            <Link
-              href="/dashboard/agents"
-              className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/agents' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
-            >
-              Agent
-            </Link>
             {user.role === 'admin' && (
-              <Link
-                href="/dashboard/employees"
-                className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/employees' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
-              >
-                Employee
-              </Link>
+              <>
+                <Link
+                  href="/dashboard/suppliers"
+                  className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/suppliers' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
+                >
+                  Supplier
+                </Link>
+                <Link
+                  href="/dashboard/agents"
+                  className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/agents' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
+                >
+                  Agent
+                </Link>
+                <Link
+                  href="/dashboard/employees"
+                  className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/employees' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
+                >
+                  Employee
+                </Link>
+              </>
             )}
           </div>
         </div>

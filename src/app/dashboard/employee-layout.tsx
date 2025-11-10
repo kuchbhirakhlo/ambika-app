@@ -61,6 +61,7 @@ export default function EmployeeDashboardLayout({ children }: { children: React.
 
     return (
         <div className="min-h-screen bg-gray-100">
+            {/* Employee Header */}
             <header className="bg-gradient-to-r from-[#34495e] to-[#2c3e50] text-white shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                     <div className="flex items-center">
@@ -95,7 +96,7 @@ export default function EmployeeDashboardLayout({ children }: { children: React.
                 </div>
             </header>
 
-            {/* Employee menu with limited tabs */}
+            {/* Employee Navigation - Limited Menu */}
             <nav className="bg-white shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex space-x-4 overflow-x-auto py-1 scrollbar-hide">
@@ -135,10 +136,12 @@ export default function EmployeeDashboardLayout({ children }: { children: React.
                 </div>
             </div>
 
+            {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
                 {children}
             </main>
 
+            {/* Employee Footer */}
             <footer className="bg-white py-4 sm:py-6 border-t border-gray-200 mt-8 sm:mt-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <p className="text-center text-gray-500 text-xs sm:text-sm">
