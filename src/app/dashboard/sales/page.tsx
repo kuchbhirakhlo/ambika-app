@@ -81,6 +81,14 @@ export default function SalesPage() {
   const [orderError, setOrderError] = useState("");
   const [nextId, setNextId] = useState(2);
 
+  // View/Edit Modal states
+  const [showOrderViewModal, setShowOrderViewModal] = useState(false);
+  const [showOrderEditModal, setShowOrderEditModal] = useState(false);
+  const [showEstimateViewModal, setShowEstimateViewModal] = useState(false);
+  const [showEstimateEditModal, setShowEstimateEditModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(null);
+  
   // Estimate state
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [isGeneratingEstimate, setIsGeneratingEstimate] = useState(false);
@@ -212,14 +220,34 @@ export default function SalesPage() {
     }
   };
 
-  const viewOrder = (orderId: string) => {
-    // Implementation for viewing an order
-    console.log("View order:", orderId);
+  const viewOrder = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`);
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      const data = await response.json();
+      setSelectedOrder(data.order);
+      setShowOrderViewModal(true);
+    } catch (error) {
+      console.error("Error loading order:", error);
+      setError("Failed to load order details. Please try again.");
+    }
   };
 
-  const editOrder = (orderId: string) => {
-    // Implementation for editing an order
-    console.log("Edit order:", orderId);
+  const editOrder = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`);
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      const data = await response.json();
+      setSelectedOrder(data.order);
+      setShowOrderEditModal(true);
+    } catch (error) {
+      console.error("Error loading order:", error);
+      setError("Failed to load order details. Please try again.");
+    }
   };
 
   const generateEstimate = async (orderId: string) => {
@@ -311,14 +339,34 @@ export default function SalesPage() {
   };
 
   // Estimate actions
-  const viewEstimateDetails = (estimateId: string) => {
-    // Implementation for viewing an estimate details
-    console.log("View estimate details:", estimateId);
+  const viewEstimateDetails = async (estimateId: string) => {
+    try {
+      const response = await fetch(`/api/estimates/${estimateId}`);
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      const data = await response.json();
+      setSelectedEstimate(data.estimate);
+      setShowEstimateViewModal(true);
+    } catch (error) {
+      console.error("Error loading estimate:", error);
+      setError("Failed to load estimate details. Please try again.");
+    }
   };
 
-  const editEstimate = (estimateId: string) => {
-    // Implementation for editing an estimate
-    console.log("Edit estimate:", estimateId);
+  const editEstimate = async (estimateId: string) => {
+    try {
+      const response = await fetch(`/api/estimates/${estimateId}`);
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      const data = await response.json();
+      setSelectedEstimate(data.estimate);
+      setShowEstimateEditModal(true);
+    } catch (error) {
+      console.error("Error loading estimate:", error);
+      setError("Failed to load estimate details. Please try again.");
+    }
   };
 
   const deleteEstimate = async (estimateId: string) => {
@@ -554,6 +602,27 @@ export default function SalesPage() {
     }
   };
 
+  // Modal close functions
+  const closeOrderViewModal = () => {
+    setShowOrderViewModal(false);
+    setSelectedOrder(null);
+  };
+
+  const closeOrderEditModal = () => {
+    setShowOrderEditModal(false);
+    setSelectedOrder(null);
+  };
+
+  const closeEstimateViewModal = () => {
+    setShowEstimateViewModal(false);
+    setSelectedEstimate(null);
+  };
+
+  const closeEstimateEditModal = () => {
+    setShowEstimateEditModal(false);
+    setSelectedEstimate(null);
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -594,7 +663,7 @@ export default function SalesPage() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-medium text-gray-900">Order Management</h2>
             <button
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              className="bg-blue-600 text-black px-4 py-2 rounded-md hover:bg-blue-700"
               onClick={openOrderModal}
             >
               Add Order
@@ -1085,14 +1154,14 @@ export default function SalesPage() {
               <div className="flex justify-end space-x-2 mt-6">
                 <button
                   onClick={closeOrderModal}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+                  className="bg-gray-500 text-black px-4 py-2 rounded-md hover:bg-gray-600"
                   disabled={isSaving}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={saveOrder}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                  className="bg-blue-600 text-black px-4 py-2 rounded-md hover:bg-blue-700"
                   disabled={isSaving}
                 >
                   {isSaving ? "Saving..." : "Save Order"}
@@ -1102,6 +1171,400 @@ export default function SalesPage() {
           </div>
         </div>
       )}
+
+      {/* Order View Modal */}
+      {showOrderViewModal && selectedOrder && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">View Order Details</h2>
+                <button
+                  onClick={closeOrderViewModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-md mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Order ID</label>
+                    <p className="text-sm text-gray-900">{selectedOrder.order_id}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <p className="text-sm text-gray-900">{formatDate(selectedOrder.date)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                    <p className="text-sm text-gray-900">{selectedOrder.customer_name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(selectedOrder.status)}`}>
+                      {selectedOrder.status}
+                    </span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.total_amount)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {selectedOrder.items && selectedOrder.items.length > 0 && (
+                <div className="overflow-x-auto">
+                  <h3 className="text-lg font-semibold mb-2">Order Items</h3>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedOrder.items.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={closeOrderViewModal}
+                  className="bg-gray-500 text-black px-4 py-2 rounded-md hover:bg-gray-600"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Edit Modal */}
+      {showOrderEditModal && selectedOrder && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Edit Order</h2>
+                <button
+                  onClick={closeOrderEditModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-md mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Order ID</label>
+                    <p className="text-sm text-gray-900">{selectedOrder.order_id}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <p className="text-sm text-gray-900">{formatDate(selectedOrder.date)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                    <p className="text-sm text-gray-900">{selectedOrder.customer_name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      value={selectedOrder.status}
+                      onChange={(e) => setSelectedOrder({...selectedOrder, status: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="No Estimate">No Estimate</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Processing">Processing</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.total_amount)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {selectedOrder.items && selectedOrder.items.length > 0 && (
+                <div className="overflow-x-auto">
+                  <h3 className="text-lg font-semibold mb-2">Order Items</h3>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedOrder.items.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  onClick={closeOrderEditModal}
+                  className="bg-gray-500 text-black px-4 py-2 rounded-md hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Implement save functionality
+                    alert('Save functionality to be implemented');
+                  }}
+                  className="bg-blue-600 text-black px-4 py-2 rounded-md hover:bg-blue-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Estimate View Modal */}
+      {showEstimateViewModal && selectedEstimate && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">View Estimate Details</h2>
+                <button
+                  onClick={closeEstimateViewModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-md mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estimate ID</label>
+                    <p className="text-sm text-gray-900">{selectedEstimate.estimate_id}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <p className="text-sm text-gray-900">{formatDate(selectedEstimate.date)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                    <p className="text-sm text-gray-900">{selectedEstimate.customer_name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Agent Name</label>
+                    <p className="text-sm text-gray-900">{selectedEstimate.agent_name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Items</label>
+                    <p className="text-sm text-gray-900">{selectedEstimate.total_items}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedEstimate.total_amount)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getEstimateStatusBadgeColor(selectedEstimate.status)}`}>
+                      {selectedEstimate.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedEstimate.items && selectedEstimate.items.length > 0 && (
+                <div className="overflow-x-auto">
+                  <h3 className="text-lg font-semibold mb-2">Estimate Items</h3>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedEstimate.items.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={closeEstimateViewModal}
+                  className="bg-gray-500 text-black px-4 py-2 rounded-md hover:bg-gray-600"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Estimate Edit Modal */}
+      {showEstimateEditModal && selectedEstimate && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Edit Estimate</h2>
+                <button
+                  onClick={closeEstimateEditModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-md mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estimate ID</label>
+                    <p className="text-sm text-gray-900">{selectedEstimate.estimate_id}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <p className="text-sm text-gray-900">{formatDate(selectedEstimate.date)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                    <p className="text-sm text-gray-900">{selectedEstimate.customer_name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Agent Name</label>
+                    <p className="text-sm text-gray-900">{selectedEstimate.agent_name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Items</label>
+                    <p className="text-sm text-gray-900">{selectedEstimate.total_items}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedEstimate.total_amount)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      value={selectedEstimate.status}
+                      onChange={(e) => setSelectedEstimate({...selectedEstimate, status: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {selectedEstimate.items && selectedEstimate.items.length > 0 && (
+                <div className="overflow-x-auto">
+                  <h3 className="text-lg font-semibold mb-2">Estimate Items</h3>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {selectedEstimate.items.map((item, index) => (
+                        <tr key={index}>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              
+              <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  onClick={closeEstimateEditModal}
+                  className="bg-gray-500 text-black px-4 py-2 rounded-md hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Implement save functionality
+                    alert('Save functionality to be implemented');
+                  }}
+                  className="bg-blue-600 text-black px-4 py-2 rounded-md hover:bg-blue-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-} 
+}
