@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <button
               onClick={handleLogout}
-              className="bg-white text-[#34495e] hover:bg-[#34495e]/10 py-1 px-3 rounded text-sm transition-colors"
+              className="bg-white text-[#34495e] hover:bg-white py-1 px-3 rounded text-sm transition-colors"
             >
               Logout
             </button>

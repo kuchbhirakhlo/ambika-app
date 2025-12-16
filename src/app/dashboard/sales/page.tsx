@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Order {
   _id: string;
@@ -9,6 +10,8 @@ interface Order {
   date: string;
   customer_name: string;
   total_amount: number;
+  advance_amount: number;
+  balance_amount: number;
   status: string;
   estimate_id?: string;
   items?: OrderItem[];
@@ -57,6 +60,7 @@ interface Estimate {
 }
 
 export default function SalesPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"orders" | "estimates">("orders");
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -65,6 +69,9 @@ export default function SalesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Check if user is admin
+  const isAdmin = user?.role === "admin";
   
   // New Order State
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -80,6 +87,9 @@ export default function SalesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [nextId, setNextId] = useState(2);
+  const [advanceAmount, setAdvanceAmount] = useState<number | string>("");
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [balanceAmount, setBalanceAmount] = useState(0);
 
   // View/Edit Modal states
   const [showOrderViewModal, setShowOrderViewModal] = useState(false);
@@ -94,12 +104,18 @@ export default function SalesPage() {
   const [isGeneratingEstimate, setIsGeneratingEstimate] = useState(false);
 
   useEffect(() => {
+    // If user is not admin and trying to access estimates tab, switch to orders
+    if (!isAdmin && activeTab === "estimates") {
+      setActiveTab("orders");
+      return;
+    }
+    
     if (activeTab === "orders") {
       loadOrders();
     } else if (activeTab === "estimates") {
       loadEstimates();
     }
-  }, [activeTab]);
+  }, [activeTab, isAdmin]);
 
   useEffect(() => {
     if (orders.length > 0 && activeTab === "orders") {
@@ -112,6 +128,18 @@ export default function SalesPage() {
       filterEstimates();
     }
   }, [estimates, searchTerm]);
+
+  // Helper function to get numeric advance amount
+  const getAdvanceAmountNumber = (): number => {
+    return typeof advanceAmount === "string" ? 0 : advanceAmount;
+  };
+
+  // Calculate total and balance amounts
+  useEffect(() => {
+    const newTotal = calculateTotal();
+    setTotalAmount(newTotal);
+    setBalanceAmount(newTotal - getAdvanceAmountNumber());
+  }, [orderItems, advanceAmount]);
 
   const loadOrders = async () => {
     try {
@@ -186,6 +214,9 @@ export default function SalesPage() {
   };
 
   const handleTabChange = (tab: "orders" | "estimates") => {
+    if (tab === "estimates" && !isAdmin) {
+      return; // Don't allow employees to switch to estimates tab
+    }
     setActiveTab(tab);
   };
 
@@ -251,6 +282,11 @@ export default function SalesPage() {
   };
 
   const generateEstimate = async (orderId: string) => {
+    if (!isAdmin) {
+      alert("Only admin users can generate estimates.");
+      return;
+    }
+    
     try {
       setIsGeneratingEstimate(true);
       
@@ -324,6 +360,11 @@ export default function SalesPage() {
   };
 
   const viewEstimate = (estimateId: string) => {
+    if (!isAdmin) {
+      alert("Only admin users can view estimates.");
+      return;
+    }
+    
     setActiveTab("estimates");
     // Scroll to the estimate in the estimates tab and highlight it
     setTimeout(() => {
@@ -470,6 +511,9 @@ export default function SalesPage() {
     setOrderItems([
       { id: 1, product_code: "", product_name: "", category: "", size: "", quantity: 0, rate: 0, total: 0 }
     ]);
+    setAdvanceAmount("");
+    setTotalAmount(0);
+    setBalanceAmount(0);
     setOrderError("");
     setNextId(2);
   };
@@ -543,14 +587,22 @@ export default function SalesPage() {
         return;
       }
       
+      if (getAdvanceAmountNumber() > totalAmount) {
+        setOrderError("Advance amount cannot exceed total amount");
+        setIsSaving(false);
+        return;
+      }
+      
       const formattedDate = new Date(orderDate).toISOString();
-      const total = calculateTotal();
+      const total = totalAmount;
       
       const orderData = {
         order_id: newOrderId,
         date: formattedDate,
         customer_name: customerName,
         total_amount: total,
+        advance_amount: getAdvanceAmountNumber(),
+        balance_amount: balanceAmount,
         status: "No Estimate",
         items: orderItems.map(item => ({
           product_code: item.product_code,
@@ -643,16 +695,18 @@ export default function SalesPage() {
             >
               Orders
             </button>
-            <button
-              className={`py-2 px-4 text-center border-b-2 font-medium ${
-                activeTab === "estimates"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-              onClick={() => handleTabChange("estimates")}
-            >
-              Estimates
-            </button>
+            {isAdmin && (
+              <button
+                className={`py-2 px-4 text-center border-b-2 font-medium ${
+                  activeTab === "estimates"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+                onClick={() => handleTabChange("estimates")}
+              >
+                Estimates
+              </button>
+            )}
           </nav>
         </div>
       </div>
@@ -682,7 +736,7 @@ export default function SalesPage() {
               placeholder="Search orders..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="border border-gray-300 rounded-md px-4 py-2 w-full sm:w-64"
+              className="border border-gray-300 rounded-md px-4 py-2 w-full sm:w-64 text-gray-900"
             />
           </div>
 
@@ -758,21 +812,21 @@ export default function SalesPage() {
                             >
                               Edit
                             </button>
-                            {order.status === "No Estimate" ? (
+                            {isAdmin && order.status === "No Estimate" ? (
                               <button
                                 onClick={() => generateEstimate(order._id)}
                                 className="text-blue-600 hover:text-blue-900"
                               >
                                 Generate Estimate
                               </button>
-                            ) : (
+                            ) : isAdmin && order.estimate_id ? (
                               <button
                                 onClick={() => order.estimate_id && viewEstimate(order.estimate_id)}
                                 className="text-blue-600 hover:text-blue-900"
                               >
                                 View Estimate
                               </button>
-                            )}
+                            ) : null}
                           </td>
                         </tr>
                       ))
@@ -811,7 +865,7 @@ export default function SalesPage() {
       )}
 
       {/* Estimates Tab Content */}
-      {activeTab === "estimates" && (
+      {isAdmin && activeTab === "estimates" && (
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-medium text-gray-900">Estimates Management</h2>
@@ -829,7 +883,7 @@ export default function SalesPage() {
               placeholder="Search estimates..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="border border-gray-300 rounded-md px-4 py-2 w-full sm:w-64"
+              className="border border-gray-300 rounded-md px-4 py-2 w-full sm:w-64 text-gray-900"
             />
           </div>
 
@@ -880,8 +934,8 @@ export default function SalesPage() {
                       </tr>
                     ) : (
                       filteredEstimates.map((estimate, index) => (
-                        <tr 
-                          key={estimate._id} 
+                        <tr
+                          key={estimate._id}
                           id={`estimate-${estimate.estimate_id}`}
                           className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
                         >
@@ -996,7 +1050,7 @@ export default function SalesPage() {
                         type="text"
                         value={newOrderId}
                         readOnly
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none bg-gray-100"
+                        className="w-full px-3 py-2 border border-gray-300 text-black rounded-md shadow-sm focus:outline-none bg-gray-100"
                       />
                     </div>
                     <div>
@@ -1007,7 +1061,7 @@ export default function SalesPage() {
                         type="date"
                         value={orderDate}
                         onChange={(e) => setOrderDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                       />
                     </div>
                   </div>
@@ -1021,7 +1075,7 @@ export default function SalesPage() {
                         type="text"
                         value={agentName}
                         readOnly
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none bg-gray-100"
+                        className="w-full px-3 py-2 border text-black border-gray-300 rounded-md shadow-sm focus:outline-none bg-gray-100"
                       />
                     </div>
                     <div>
@@ -1031,7 +1085,7 @@ export default function SalesPage() {
                       <select
                         value={customerName}
                         onChange={handleCustomerChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                       >
                         <option value="">Select a customer</option>
                         {customers.map(customer => (
@@ -1091,7 +1145,7 @@ export default function SalesPage() {
                               type="text"
                               value={item.product_code}
                               onChange={(e) => handleProductCodeChange(item.id, e.target.value)}
-                              className="w-full max-w-[140px] px-2 py-1 border border-gray-300 rounded-md"
+                              className="w-full max-w-[140px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
                               list="product-list"
                             />
                             <datalist id="product-list">
@@ -1115,7 +1169,7 @@ export default function SalesPage() {
                               min="0"
                               value={item.quantity}
                               onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value) || 0)}
-                              className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md"
+                              className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
                             />
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -1148,6 +1202,57 @@ export default function SalesPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+                
+                {/* Payment Summary */}
+                <div className="mt-6 bg-gray-50 p-4 rounded-md">
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Total (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={totalAmount}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none bg-gray-100 text-gray-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Advance (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min=""
+                        value={advanceAmount}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === "") {
+                            setAdvanceAmount("");
+                          } else {
+                            const numValue = parseInt(value);
+                            if (!isNaN(numValue) && numValue <= totalAmount) {
+                              setAdvanceAmount(numValue);
+                            }
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder=""
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Balance (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={balanceAmount}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none bg-gray-100 text-gray-900"
+                      />
+                      </div>
+                  </div>
                 </div>
               </div>
               
@@ -1203,13 +1308,21 @@ export default function SalesPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(selectedOrder.status)}`}>
+                    <span className={`px-2 text-black inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(selectedOrder.status)}`}>
                       {selectedOrder.status}
                     </span>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
                     <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.total_amount)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Advance Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.advance_amount || 0)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Balance Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.balance_amount || 0)}</p>
                   </div>
                 </div>
               </div>
@@ -1293,7 +1406,7 @@ export default function SalesPage() {
                     <select
                       value={selectedOrder.status}
                       onChange={(e) => setSelectedOrder({...selectedOrder, status: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     >
                       <option value="No Estimate">No Estimate</option>
                       <option value="Pending">Pending</option>
@@ -1304,6 +1417,14 @@ export default function SalesPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
                     <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.total_amount)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Advance Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.advance_amount || 0)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Balance Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.balance_amount || 0)}</p>
                   </div>
                 </div>
               </div>
@@ -1503,7 +1624,7 @@ export default function SalesPage() {
                     <select
                       value={selectedEstimate.status}
                       onChange={(e) => setSelectedEstimate({...selectedEstimate, status: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     >
                       <option value="Pending">Pending</option>
                       <option value="Completed">Completed</option>

@@ -6,6 +6,8 @@ interface User {
   id: string;
   name: string;
   email: string;
+  username: string;
+  role: string;
 }
 
 interface AuthContextType {
@@ -50,7 +52,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser({
           id: '1',
           name: 'Admin User',
-          email: 'admin@example.com'
+          email: 'admin@example.com',
+          username: 'admin',
+          role: 'admin'
         });
       } catch (error) {
         console.error('Authentication error:', error);

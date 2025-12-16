@@ -15,6 +15,8 @@ export interface IOrder extends Document {
   date: Date;
   customer_name: string;
   total_amount: number;
+  advance_amount: number;
+  balance_amount: number;
   status: string;
   estimate_id?: string;
   items: OrderItem[];
@@ -80,6 +82,16 @@ const orderSchema = new Schema<IOrder>(
     total_amount: {
       type: Number,
       required: [true, 'Total amount is required'],
+      min: 0,
+    },
+    advance_amount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    balance_amount: {
+      type: Number,
+      default: 0,
       min: 0,
     },
     status: {

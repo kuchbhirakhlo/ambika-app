@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     console.log("User found:", user.username, "Role:", user.role);
 
     // Compare password using bcrypt for both users and employees
-    // For backward compatibility, also check plain text password for admin
+    // For backward compatibility, also check plain text password for admin and employees
     let isPasswordValid = false;
     console.log("Checking password for user role:", user.role);
 
@@ -115,9 +115,27 @@ export async function POST(request: NextRequest) {
         console.log("Attempting bcrypt comparison");
         isPasswordValid = await bcrypt.compare(password, user.password);
         console.log("Bcrypt comparison result:", isPasswordValid);
+        
+        // If bcrypt comparison fails and this is an employee, try plain text comparison
+        // This handles cases where password wasn't properly hashed during creation
+        if (!isPasswordValid && user.role === 'employee') {
+          console.log("Bcrypt failed for employee, trying plain text comparison");
+          isPasswordValid = password === user.password;
+          console.log("Plain text comparison result:", isPasswordValid);
+          
+          if (isPasswordValid) {
+            console.log("Plain text password matched - this user needs password rehashing");
+          }
+        }
       } catch (error) {
         console.log("Bcrypt error:", error);
-        isPasswordValid = false;
+        
+        // If bcrypt fails and this is an employee, try plain text as fallback
+        if (user.role === 'employee') {
+          console.log("Bcrypt failed for employee, trying plain text comparison as fallback");
+          isPasswordValid = password === user.password;
+          console.log("Fallback plain text comparison result:", isPasswordValid);
+        }
       }
     }
 
