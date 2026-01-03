@@ -137,6 +137,32 @@ export default function EmployeesPage() {
         setIsDeleteModalOpen(true);
     };
 
+    const handleLogout = async (employeeId: string, employeeName: string) => {
+        if (!window.confirm(`Are you sure you want to logout employee "${employeeName}"? This will force them to login again.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/employees/${employeeId}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ action: "logout" }),
+            });
+
+            if (response.ok) {
+                showNotification("success", `Employee "${employeeName}" has been logged out successfully`);
+            } else {
+                const data = await response.json();
+                showNotification("error", data.error || "Failed to logout employee");
+            }
+        } catch (error) {
+            console.error("Error logging out employee:", error);
+            showNotification("error", "Failed to logout employee");
+        }
+    };
+
     const resetForm = () => {
         setFormData({
             name: "",
@@ -320,6 +346,12 @@ export default function EmployeesPage() {
                                                 Edit
                                             </button>
                                             <button
+                                                onClick={() => handleLogout(employee._id, employee.name || employee.username)}
+                                                className="text-orange-600 hover:text-orange-900 mr-3"
+                                            >
+                                                Logout
+                                            </button>
+                                            <button
                                                 onClick={() => handleDelete(employee._id, employee.name || employee.username)}
                                                 className="text-red-600 hover:text-red-900"
                                             >
@@ -362,6 +394,12 @@ export default function EmployeesPage() {
                                         className="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm"
                                     >
                                         Edit
+                                    </button>
+                                    <button
+                                        onClick={() => handleLogout(employee._id, employee.name || employee.username)}
+                                        className="text-white bg-orange-600 hover:bg-orange-700 px-3 py-1 rounded text-sm"
+                                    >
+                                        Logout
                                     </button>
                                     <button
                                         onClick={() => handleDelete(employee._id, employee.name || employee.username)}

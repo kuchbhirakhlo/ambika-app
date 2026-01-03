@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { generatePDF } from "@/utils/pdf-fix";
 import AddSupplierModal from "@/app/components/suppliers/AddSupplierModal";
 import ViewSupplierModal from "@/app/components/suppliers/ViewSupplierModal";
 import EditSupplierModal from "@/app/components/suppliers/EditSupplierModal";
@@ -104,6 +105,32 @@ export default function SuppliersPage() {
       supplier.phone.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleGeneratePDF = async () => {
+    try {
+      // Create table data for PDF
+      const headerData = ["S.No", "Supplier Name", "Email", "Phone", "Category", "Status"];
+      const tableData = filteredSuppliers.map((supplier, index) => [
+        (index + 1).toString(),
+        supplier.name,
+        supplier.email,
+        supplier.phone,
+        supplier.category || '',
+        supplier.status || '',
+      ]);
+
+      // Generate PDF with table
+      await generatePDF(
+        "Supplier List",
+        headerData,
+        tableData,
+        "supplier-list.pdf"
+      );
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -129,8 +156,11 @@ export default function SuppliersPage() {
           >
             Add Supplier
           </button>
-          <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
-            Export
+          <button
+            onClick={handleGeneratePDF}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+          >
+            Export PDF
           </button>
         </div>
         <div className="flex items-center">
@@ -319,4 +349,4 @@ export default function SuppliersPage() {
       />
     </div>
   );
-} 
+}

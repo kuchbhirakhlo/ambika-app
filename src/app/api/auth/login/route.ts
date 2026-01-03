@@ -22,6 +22,7 @@ const connectMongo = async () => {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("=== LOGIN API CALLED ===");
     console.log("Login attempt received");
 
     // Parse request body
@@ -101,6 +102,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("User found:", user.username, "Role:", user.role);
+
+    // Check if employee is force logged out
+    if (user.role === 'employee' && user.forceLogout) {
+      // Reset forceLogout flag
+      await user.updateOne({ forceLogout: false });
+      return NextResponse.json(
+        { error: "Your session has been terminated by admin" },
+        { status: 401 }
+      );
+    }
 
     // Compare password using bcrypt for both users and employees
     // For backward compatibility, also check plain text password for admin and employees
@@ -187,5 +198,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-

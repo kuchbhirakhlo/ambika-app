@@ -9,6 +9,7 @@ export interface IEmployee extends Document {
     phone?: string;
     password: string;
     employeeId: string;
+    forceLogout?: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -21,6 +22,7 @@ const EmployeeSchema = new Schema<IEmployee>({
     phone: { type: String },
     password: { type: String, required: true },
     employeeId: { type: String, required: true, unique: true },
+    forceLogout: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });

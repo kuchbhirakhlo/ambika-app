@@ -95,6 +95,50 @@ export async function PUT(
     }
 }
 
+// PATCH (logout) an employee
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        await connectMongo();
+
+        const data = await request.json();
+        const { action } = data;
+
+        if (action === 'logout') {
+            const updatedEmployee = await Employee.findByIdAndUpdate(
+                params.id,
+                { forceLogout: true },
+                { new: true }
+            );
+
+            if (!updatedEmployee) {
+                return NextResponse.json(
+                    { error: 'Employee not found' },
+                    { status: 404 }
+                );
+            }
+
+            return NextResponse.json(
+                { message: 'Employee logged out successfully' },
+                { status: 200 }
+            );
+        }
+
+        return NextResponse.json(
+            { error: 'Invalid action' },
+            { status: 400 }
+        );
+    } catch (error) {
+        console.error('Error logging out employee:', error);
+        return NextResponse.json(
+            { error: 'Failed to logout employee' },
+            { status: 500 }
+        );
+    }
+}
+
 // DELETE an employee
 export async function DELETE(
     request: NextRequest,

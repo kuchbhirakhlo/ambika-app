@@ -104,18 +104,12 @@ export default function SalesPage() {
   const [isGeneratingEstimate, setIsGeneratingEstimate] = useState(false);
 
   useEffect(() => {
-    // If user is not admin and trying to access estimates tab, switch to orders
-    if (!isAdmin && activeTab === "estimates") {
-      setActiveTab("orders");
-      return;
-    }
-    
     if (activeTab === "orders") {
       loadOrders();
     } else if (activeTab === "estimates") {
       loadEstimates();
     }
-  }, [activeTab, isAdmin]);
+  }, [activeTab]);
 
   useEffect(() => {
     if (orders.length > 0 && activeTab === "orders") {
@@ -214,9 +208,6 @@ export default function SalesPage() {
   };
 
   const handleTabChange = (tab: "orders" | "estimates") => {
-    if (tab === "estimates" && !isAdmin) {
-      return; // Don't allow employees to switch to estimates tab
-    }
     setActiveTab(tab);
   };
 
@@ -695,18 +686,16 @@ export default function SalesPage() {
             >
               Orders
             </button>
-            {isAdmin && (
-              <button
-                className={`py-2 px-4 text-center border-b-2 font-medium ${
-                  activeTab === "estimates"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-                onClick={() => handleTabChange("estimates")}
-              >
-                Estimates
-              </button>
-            )}
+            <button
+              className={`py-2 px-4 text-center border-b-2 font-medium ${
+                activeTab === "estimates"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+              onClick={() => handleTabChange("estimates")}
+            >
+              Estimates
+            </button>
           </nav>
         </div>
       </div>
@@ -865,7 +854,7 @@ export default function SalesPage() {
       )}
 
       {/* Estimates Tab Content */}
-      {isAdmin && activeTab === "estimates" && (
+      {activeTab === "estimates" && (
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-medium text-gray-900">Estimates Management</h2>
@@ -1109,15 +1098,6 @@ export default function SalesPage() {
                           Product Code
                         </th>
                         <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Category
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Size
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Quantity
                         </th>
                         <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1153,15 +1133,6 @@ export default function SalesPage() {
                                 <option key={product._id} value={product.code} />
                               ))}
                             </datalist>
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {item.product_name || "-"}
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {item.category || "-"}
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {item.size || "-"}
                           </td>
                           <td className="px-3 py-4 whitespace-nowrap">
                             <input
@@ -1334,11 +1305,9 @@ export default function SalesPage() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                       </tr>
                     </thead>
@@ -1346,11 +1315,9 @@ export default function SalesPage() {
                       {selectedOrder.items.map((item, index) => (
                         <tr key={index}>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
                         </tr>
                       ))}
@@ -1436,11 +1403,9 @@ export default function SalesPage() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                       </tr>
                     </thead>
@@ -1448,11 +1413,9 @@ export default function SalesPage() {
                       {selectedOrder.items.map((item, index) => (
                         <tr key={index}>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
                         </tr>
                       ))}
@@ -1540,11 +1503,9 @@ export default function SalesPage() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                       </tr>
                     </thead>
@@ -1552,11 +1513,9 @@ export default function SalesPage() {
                       {selectedEstimate.items.map((item, index) => (
                         <tr key={index}>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
                         </tr>
                       ))}
@@ -1640,11 +1599,9 @@ export default function SalesPage() {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                       </tr>
                     </thead>
@@ -1652,11 +1609,9 @@ export default function SalesPage() {
                       {selectedEstimate.items.map((item, index) => (
                         <tr key={index}>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_name}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
                         </tr>
                       ))}

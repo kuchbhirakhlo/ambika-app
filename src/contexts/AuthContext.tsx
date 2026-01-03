@@ -41,28 +41,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('auth-token');
-        
+        console.log('AuthContext: Checking auth, token exists:', !!token);
+
         if (!token) {
+          console.log('AuthContext: No token found, setting loading to false');
           setLoading(false);
           return;
         }
-        
-        // In a real app, you would verify the token with your API
-        // Here we're just simulating a user for demo purposes
-        setUser({
-          id: '1',
-          name: 'Admin User',
-          email: 'admin@example.com',
-          username: 'admin',
-          role: 'admin'
+
+        console.log('AuthContext: Verifying token with API...');
+
+        // Verify token with API to get actual user data
+        const response = await fetch('/api/auth/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
         });
+
+        console.log('AuthContext: Verify response status:', response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('AuthContext: Token verified, user data:', data.user);
+          setUser(data.user);
+        } else {
+          const errorData = await response.json();
+          console.log('AuthContext: Token verification failed:', errorData);
+          // Token is invalid, remove it
+          localStorage.removeItem('auth-token');
+          setUser(null);
+        }
       } catch (error) {
-        console.error('Authentication error:', error);
+        console.error('AuthContext: Authentication error:', error);
+        // On error, clear token and user
+        localStorage.removeItem('auth-token');
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
-    
+
     checkAuth();
   }, []);
 
@@ -116,4 +136,4 @@ export function AuthProvider({ children }: AuthProviderProps) {
       {children}
     </AuthContext.Provider>
   );
-} 
+}

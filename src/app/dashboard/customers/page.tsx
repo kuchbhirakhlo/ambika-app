@@ -299,6 +299,7 @@ export default function Customers() {
   const handleGeneratePDF = async () => {
     try {
       // Create table data for PDF
+      const headerData = ["S.No", "Customer ID", "Name", "Contact", "Agent", "Address/City"];
       const tableData = filteredCustomers.map((customer, index) => [
         (index + 1).toString(),
         customer.customer_ref_id || '',
@@ -307,13 +308,14 @@ export default function Customers() {
         customer.agent || '',
         customer.address || '',
       ]);
-      
+
       // Generate PDF with table
-      await generatePDF({
-        title: "Customer List",
-        headers: ["S.No", "Customer ID", "Name", "Contact", "Agent", "Address/City"],
-        data: tableData,
-      });
+      await generatePDF(
+        "Customer List",
+        headerData,
+        tableData,
+        "customer-list.pdf"
+      );
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Failed to generate PDF. Please try again.");
@@ -663,4 +665,4 @@ export default function Customers() {
       )}
     </div>
   );
-} 
+}

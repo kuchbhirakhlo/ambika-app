@@ -319,6 +319,7 @@ export default function Products() {
   const handleGeneratePDF = async () => {
     try {
       // Create table data for PDF
+      const headerData = ["S.No", "Product Code", "Product Name", "Size", "Category", "Supplier", "Rate"];
       const tableData = filteredProducts.map((product, index) => [
         (index + 1).toString(),
         product.code,
@@ -328,13 +329,14 @@ export default function Products() {
         product.supplier,
         `₹${product.price.toFixed(2)}`,
       ]);
-      
+
       // Generate PDF with table
-      await generatePDF({
-        title: "Product List",
-        headers: ["S.No", "Product Code", "Product Name", "Size", "Category", "Supplier", "Rate"],
-        data: tableData,
-      });
+      await generatePDF(
+        "Product List",
+        headerData,
+        tableData,
+        "product-list.pdf"
+      );
     } catch (error) {
       console.error("Error generating PDF:", error);
       alert("Failed to generate PDF. Please try again.");
@@ -713,4 +715,4 @@ export default function Products() {
       )}
     </div>
   );
-} 
+}

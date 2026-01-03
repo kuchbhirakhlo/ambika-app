@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { generatePDF } from "@/utils/pdf-fix";
 import AddAgentModal from "@/app/components/agents/AddAgentModal";
 import ViewAgentModal from "@/app/components/agents/ViewAgentModal";
 import EditAgentModal from "@/app/components/agents/EditAgentModal";
@@ -102,6 +103,31 @@ export default function AgentsPage() {
       agent.city.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleGeneratePDF = async () => {
+    try {
+      // Create table data for PDF
+      const headerData = ["S.No", "Agent Name", "Contact", "Email", "City"];
+      const tableData = filteredAgents.map((agent, index) => [
+        (index + 1).toString(),
+        agent.name,
+        agent.contact,
+        agent.email || '',
+        agent.city,
+      ]);
+
+      // Generate PDF with table
+      await generatePDF(
+        "Agent List",
+        headerData,
+        tableData,
+        "agent-list.pdf"
+      );
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -127,8 +153,11 @@ export default function AgentsPage() {
           >
             Add New Agent
           </button>
-          <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
-            Export
+          <button
+            onClick={handleGeneratePDF}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+          >
+            Export PDF
           </button>
         </div>
         <div className="flex items-center">
@@ -314,4 +343,4 @@ export default function AgentsPage() {
       />
     </div>
   );
-} 
+}
