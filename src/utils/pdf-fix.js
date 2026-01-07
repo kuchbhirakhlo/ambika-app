@@ -1,7 +1,6 @@
-'use client';
+"use client";
 
 // This is a JavaScript file to avoid TypeScript issues with jsPDF
-let jsPDFModule = null;
 
 export const generatePDF = async (
   title,
@@ -16,16 +15,13 @@ export const generatePDF = async (
   }
   
   try {
-    // Lazy load modules only when needed
-    if (!jsPDFModule) {
-      // Dynamic imports
-      jsPDFModule = await import('jspdf');
-      // Import autotable extension
-      await import('jspdf-autotable');
-    }
+    // Dynamic imports - load both modules
+    const { jsPDF } = await import('jspdf');
     
-    // Get the jsPDF constructor
-    const { jsPDF } = jsPDFModule;
+    // Import jspdf-autotable and get the default export (the autoTable function)
+    const jspdfAutotable = await import('jspdf-autotable');
+    const autoTable = jspdfAutotable.default || jspdfAutotable;
+    
     const doc = new jsPDF();
     
     // Add title
@@ -36,28 +32,24 @@ export const generatePDF = async (
     doc.setFontSize(11);
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
     
-    // Use autotable - this will work if jspdf-autotable is properly loaded
-    try {
-      doc.autoTable({
-        startY: 40,
-        head: [headerData],
-        body: rowsData,
-        theme: 'grid',
-        headStyles: {
-          fillColor: [74, 108, 247],
-          textColor: [255, 255, 255],
-          fontStyle: 'bold'
-        },
-        alternateRowStyles: {
-          fillColor: [240, 244, 255]
-        }
-      });
-    } catch (tableError) {
-      console.error('Error creating table:', tableError);
-      // Fallback to simple document
-      doc.setFontSize(12);
-      doc.text('Error creating table. See console for details.', 14, 40);
-    }
+    // Use autotable to create the table
+    const tableOptions = {
+      startY: 40,
+      head: [headerData],
+      body: rowsData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [74, 108, 247],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [240, 244, 255]
+      }
+    };
+
+    // Call autoTable with doc and options
+    autoTable(doc, tableOptions);
     
     // Save the PDF
     doc.save(fileName || 'report.pdf');
@@ -66,4 +58,4 @@ export const generatePDF = async (
     console.error("Error generating PDF:", error);
     return false;
   }
-}; 
+};

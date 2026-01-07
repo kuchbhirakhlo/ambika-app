@@ -128,8 +128,9 @@ export default function Orders() {
                   <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <a href="#" className="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
-                  <a href="#" className="text-indigo-600 hover:text-indigo-900">Invoice</a>
+                  <button className="text-indigo-600 hover:text-indigo-900 mr-3">View</button>
+                  <button className="text-indigo-600 hover:text-indigo-900 mr-3">Invoice</button>
+                  <a href={`/dashboard/orders/ORD-2023-1042`} className="text-red-600 hover:text-red-900">Edit</a>
                 </td>
               </tr>
               <tr>

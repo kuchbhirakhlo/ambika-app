@@ -530,6 +530,18 @@ export default function SalesPage() {
     setSelectedOrder({ ...selectedOrder, items, total_amount: newTotal, balance_amount: newTotal - (selectedOrder.advance_amount || 0) } as Order);
   };
 
+  const handleEstimateQuantityChange = (index: number, quantity: number) => {
+    if (!selectedEstimate) return;
+    const items = selectedEstimate.items ? [...selectedEstimate.items] : [];
+    if (!items[index]) return;
+    items[index] = { ...items[index], quantity, total: (items[index].rate || 0) * quantity } as any;
+
+    // Recalculate totals
+    const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
+
+    setSelectedEstimate({ ...selectedEstimate, items, total_amount: newTotal } as Estimate);
+  };
+
   const saveEditedOrder = async () => {
     if (!selectedOrder) return;
     try {
@@ -579,6 +591,58 @@ export default function SalesPage() {
     } catch (err: any) {
       console.error('Error updating order:', err);
       alert(err.message || 'Failed to update order');
+    }
+  };
+
+  const saveEditedEstimate = async () => {
+    if (!selectedEstimate) return;
+    try {
+      // Basic validation
+      if (!selectedEstimate.items || selectedEstimate.items.length === 0) {
+        alert('Estimate must have at least one item');
+        return;
+      }
+
+      // Ensure no duplicate product codes
+      const seen = new Set<string>();
+      for (const it of selectedEstimate.items) {
+        const code = (it.product_code || '').toString().trim();
+        if (!code) continue;
+        if (seen.has(code)) {
+          alert('This product code is already added to this estimate');
+          return;
+        }
+        seen.add(code);
+      }
+
+      const payload = {
+        order_id: selectedEstimate.order_id,
+        date: selectedEstimate.date,
+        customer_name: selectedEstimate.customer_name,
+        agent_name: selectedEstimate.agent_name,
+        total_items: selectedEstimate.items.length,
+        total_amount: selectedEstimate.total_amount,
+        status: selectedEstimate.status,
+        items: selectedEstimate.items,
+      };
+
+      const response = await fetch(`/api/estimates/${selectedEstimate._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || `Error: ${response.status}`);
+      }
+
+      alert('Estimate updated successfully');
+      await loadEstimates();
+      closeEstimateEditModal();
+    } catch (err: any) {
+      console.error('Error updating estimate:', err);
+      alert(err.message || 'Failed to update estimate');
     }
   };
 
@@ -1515,7 +1579,15 @@ export default function SalesPage() {
                       {selectedOrder.items.map((item, index) => (
                         <tr key={index}>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
+                          <td className="px-3 py-4 whitespace-nowrap">
+                            <input
+                              type="number"
+                              min={1}
+                              value={item.quantity}
+                              onChange={(e) => handleEditQuantityChange(index, parseInt(e.target.value) || 1)}
+                              className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
+                            />
+                          </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
@@ -1708,7 +1780,15 @@ export default function SalesPage() {
                       {selectedEstimate.items.map((item, index) => (
                         <tr key={index}>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
+                          <td className="px-3 py-4 whitespace-nowrap">
+                            <input
+                              type="number"
+                              min={1}
+                              value={item.quantity}
+                              onChange={(e) => handleEstimateQuantityChange(index, parseInt(e.target.value) || 1)}
+                              className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
+                            />
+                          </td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
@@ -1727,10 +1807,7 @@ export default function SalesPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    // TODO: Implement save functionality
-                    alert('Save functionality to be implemented');
-                  }}
+                  onClick={saveEditedEstimate}
                   className="bg-blue-600 text-black px-4 py-2 rounded-md hover:bg-blue-700"
                 >
                   Save Changes
