@@ -49,7 +49,12 @@ export async function GET(
         { status: 404 }
       );
     }
-    
+    // Normalize any legacy statuses
+    const allowedStatuses = ['Pending', 'Generate Estimate'];
+    if (!allowedStatuses.includes(order.status)) {
+      order.status = 'Pending';
+    }
+
     return NextResponse.json({ order }, { status: 200 });
   } catch (error) {
     console.error('Error fetching order:', error);
@@ -79,6 +84,19 @@ export async function PUT(
       query = { order_id: id };
     }
     
+    // Server-side validation: ensure no duplicate product codes within items
+    if (Array.isArray(data.items)) {
+      const seen = new Set();
+      for (const it of data.items) {
+        const code = (it.product_code || '').toString().trim();
+        if (!code) continue;
+        if (seen.has(code)) {
+          return NextResponse.json({ error: 'This product code is already added to this order' }, { status: 400 });
+        }
+        seen.add(code);
+      }
+    }
+
     const updatedOrder = await Order.findOneAndUpdate(
       query,
       data,

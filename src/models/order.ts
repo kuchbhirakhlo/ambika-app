@@ -98,8 +98,8 @@ const orderSchema = new Schema<IOrder>(
       type: String,
       required: [true, 'Status is required'],
       trim: true,
-      enum: ['No Estimate', 'Pending', 'Processing', 'Completed'],
-      default: 'No Estimate',
+      enum: ['Pending', 'Generate Estimate'],
+      default: 'Generate Estimate',
     },
     estimate_id: {
       type: String,
@@ -114,6 +114,36 @@ const orderSchema = new Schema<IOrder>(
     timestamps: true,
   }
 );
+
+// Validate duplicate product codes inside items and remap old/invalid statuses
+orderSchema.pre('validate', function (next) {
+  try {
+    // Map any invalid/legacy statuses to 'Pending'
+    const allowedStatuses = ['Pending', 'Generate Estimate'];
+    if (!allowedStatuses.includes(this.status)) {
+      this.status = 'Pending';
+    }
+
+    // Check duplicate product_code within items
+    if (Array.isArray(this.items)) {
+      const seen = new Set<string>();
+      for (const it of this.items) {
+        const code = (it.product_code || '').toString().trim();
+        if (!code) continue;
+        if (seen.has(code)) {
+          const err: any = new Error('Duplicate product codes are not allowed within an order');
+          err.name = 'DuplicateProductCodeError';
+          return next(err);
+        }
+        seen.add(code);
+      }
+    }
+
+    next();
+  } catch (e) {
+    next(e as any);
+  }
+});
 
 const Order = models.Order || model<IOrder>('Order', orderSchema);
 

@@ -94,10 +94,11 @@ export async function PUT(
     }
     
     // If status changed to Completed, update the corresponding order
+    // Orders only accept 'Pending' or 'Generate Estimate' statuses - map completed -> Pending
     if (data.status === 'Completed') {
       await Order.findOneAndUpdate(
         { order_id: updatedEstimate.order_id },
-        { status: 'Completed' }
+        { status: 'Pending' }
       );
     }
     
@@ -150,11 +151,12 @@ export async function DELETE(
     }
     
     // Update the corresponding order to remove estimate reference
+    // Use 'Generate Estimate' status when estimate is removed
     await Order.findOneAndUpdate(
       { order_id: deletedEstimate.order_id },
       { 
         estimate_id: null,
-        status: 'No Estimate'
+        status: 'Generate Estimate'
       }
     );
     

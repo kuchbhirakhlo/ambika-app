@@ -37,8 +37,17 @@ export async function GET(request: NextRequest) {
     if (status) query.status = status;
     if (customerName) query.customer_name = { $regex: customerName, $options: 'i' };
     
-    const orders = await Order.find(query).sort({ createdAt: -1 });
-    
+    let orders = await Order.find(query).sort({ createdAt: -1 });
+
+    // Map any legacy/invalid statuses to 'Pending' before returning
+    orders = orders.map((o: any) => {
+      const allowed = ['Pending', 'Generate Estimate'];
+      if (!allowed.includes(o.status)) {
+        o.status = 'Pending';
+      }
+      return o;
+    });
+
     return NextResponse.json({ orders }, { status: 200 });
   } catch (error) {
     console.error('Error fetching orders:', error);
@@ -63,6 +72,19 @@ export async function POST(request: NextRequest) {
       data.order_id = `ORD-${String(count + 1).padStart(3, '0')}`;
     }
     
+    // Server-side validation: ensure no duplicate product codes within items
+    if (Array.isArray(data.items)) {
+      const seen = new Set();
+      for (const it of data.items) {
+        const code = (it.product_code || '').toString().trim();
+        if (!code) continue;
+        if (seen.has(code)) {
+          return NextResponse.json({ error: 'This product code is already added to this order' }, { status: 400 });
+        }
+        seen.add(code);
+      }
+    }
+
     // Create a new order with the data
     const newOrder = await Order.create(data);
     

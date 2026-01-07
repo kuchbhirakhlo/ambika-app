@@ -60,7 +60,7 @@ interface Estimate {
 }
 
 export default function SalesPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<"orders" | "estimates">("orders");
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -70,8 +70,20 @@ export default function SalesPage() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Check if user is admin
-  const isAdmin = user?.role === "admin";
+  // Check if user is admin (case-insensitive). Use sessionStorage fallback when AuthContext hasn't loaded.
+  const getRoleFromSession = () => {
+    try {
+      const raw = sessionStorage.getItem('user');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed?.role || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const resolvedRole = (user && user.role) ? user.role : getRoleFromSession();
+  const isAdmin = !!(resolvedRole && resolvedRole.toString().toLowerCase() === 'admin');
   
   // New Order State
   const [showOrderModal, setShowOrderModal] = useState(false);
@@ -229,14 +241,10 @@ export default function SalesPage() {
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case "No Estimate":
+      case "Generate Estimate":
         return "bg-gray-100 text-gray-800";
       case "Pending":
         return "bg-yellow-100 text-yellow-800";
-      case "Processing":
-        return "bg-blue-100 text-blue-800";
-      case "Completed":
-        return "bg-green-100 text-green-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -509,9 +517,81 @@ export default function SalesPage() {
     setNextId(2);
   };
 
+  // Edit modal helpers: modify item quantity in selectedOrder
+  const handleEditQuantityChange = (index: number, quantity: number) => {
+    if (!selectedOrder) return;
+    const items = selectedOrder.items ? [...selectedOrder.items] : [];
+    if (!items[index]) return;
+    items[index] = { ...items[index], quantity, total: (items[index].rate || 0) * quantity } as any;
+
+    // Recalculate totals
+    const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
+
+    setSelectedOrder({ ...selectedOrder, items, total_amount: newTotal, balance_amount: newTotal - (selectedOrder.advance_amount || 0) } as Order);
+  };
+
+  const saveEditedOrder = async () => {
+    if (!selectedOrder) return;
+    try {
+      // Basic validation
+      if (!selectedOrder.items || selectedOrder.items.length === 0) {
+        alert('Order must have at least one item');
+        return;
+      }
+
+      // Ensure no duplicate product codes
+      const seen = new Set<string>();
+      for (const it of selectedOrder.items) {
+        const code = (it.product_code || '').toString().trim();
+        if (!code) continue;
+        if (seen.has(code)) {
+          alert('This product code is already added to this order');
+          return;
+        }
+        seen.add(code);
+      }
+
+      const payload = {
+        order_id: selectedOrder.order_id,
+        date: selectedOrder.date,
+        customer_name: selectedOrder.customer_name,
+        total_amount: selectedOrder.total_amount,
+        advance_amount: selectedOrder.advance_amount,
+        balance_amount: selectedOrder.balance_amount,
+        status: selectedOrder.status,
+        items: selectedOrder.items,
+      };
+
+      const response = await fetch(`/api/orders/${selectedOrder._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || `Error: ${response.status}`);
+      }
+
+      alert('Order updated successfully');
+      await loadOrders();
+      closeOrderEditModal();
+    } catch (err: any) {
+      console.error('Error updating order:', err);
+      alert(err.message || 'Failed to update order');
+    }
+  };
+
   const handleProductCodeChange = (id: number, code: string) => {
+    // Frontend duplicate prevention: ensure same product code not used twice in this order
+    const duplicate = orderItems.some(it => it.id !== id && it.product_code === code && code);
+    if (duplicate) {
+      setOrderError('This product code is already added to this order');
+      return;
+    }
+
     const product = products.find(p => p.code === code);
-    
+
     setOrderItems(prevItems => 
       prevItems.map(item => 
         item.id === id 
@@ -527,6 +607,7 @@ export default function SalesPage() {
           : item
       )
     );
+    setOrderError('');
   };
 
   const handleQuantityChange = (id: number, quantity: number) => {
@@ -587,6 +668,19 @@ export default function SalesPage() {
       const formattedDate = new Date(orderDate).toISOString();
       const total = totalAmount;
       
+      // Frontend duplicate check before submit
+      const seenCodes = new Set<string>();
+      for (const it of orderItems) {
+        const code = (it.product_code || '').toString().trim();
+        if (!code) continue;
+        if (seenCodes.has(code)) {
+          setOrderError('This product code is already added to this order');
+          setIsSaving(false);
+          return;
+        }
+        seenCodes.add(code);
+      }
+
       const orderData = {
         order_id: newOrderId,
         date: formattedDate,
@@ -594,7 +688,7 @@ export default function SalesPage() {
         total_amount: total,
         advance_amount: getAdvanceAmountNumber(),
         balance_amount: balanceAmount,
-        status: "No Estimate",
+        status: "Generate Estimate",
         items: orderItems.map(item => ({
           product_code: item.product_code,
           product_name: item.product_name,
@@ -686,16 +780,18 @@ export default function SalesPage() {
             >
               Orders
             </button>
-            <button
-              className={`py-2 px-4 text-center border-b-2 font-medium ${
-                activeTab === "estimates"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-              onClick={() => handleTabChange("estimates")}
-            >
-              Estimates
-            </button>
+            {isAdmin && (
+              <button
+                className={`py-2 px-4 text-center border-b-2 font-medium ${
+                  activeTab === "estimates"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+                onClick={() => handleTabChange("estimates")}
+              >
+                Estimates
+              </button>
+            )}
           </nav>
         </div>
       </div>
@@ -801,7 +897,7 @@ export default function SalesPage() {
                             >
                               Edit
                             </button>
-                            {isAdmin && order.status === "No Estimate" ? (
+                            {isAdmin && order.status === "Generate Estimate" ? (
                               <button
                                 onClick={() => generateEstimate(order._id)}
                                 className="text-blue-600 hover:text-blue-900"
@@ -1299,31 +1395,39 @@ export default function SalesPage() {
               </div>
 
               {selectedOrder.items && selectedOrder.items.length > 0 && (
-                <div className="overflow-x-auto">
-                  <h3 className="text-lg font-semibold mb-2">Order Items</h3>
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+              <div className="overflow-x-auto">
+                <h3 className="text-lg font-semibold mb-2">Order Items</h3>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedOrder.items.map((item, index) => (
+                      <tr key={index}>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          <input
+                            type="number"
+                            min={0}
+                            value={item.quantity}
+                            onChange={(e) => handleEditQuantityChange(index, parseInt(e.target.value) || 0)}
+                            className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
+                          />
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
                       </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {selectedOrder.items.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               )}
               
               <div className="flex justify-end mt-6">
@@ -1375,10 +1479,8 @@ export default function SalesPage() {
                       onChange={(e) => setSelectedOrder({...selectedOrder, status: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                     >
-                      <option value="No Estimate">No Estimate</option>
+                      <option value="Generate Estimate">Generate Estimate</option>
                       <option value="Pending">Pending</option>
-                      <option value="Processing">Processing</option>
-                      <option value="Completed">Completed</option>
                     </select>
                   </div>
                   <div>
@@ -1432,10 +1534,7 @@ export default function SalesPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    // TODO: Implement save functionality
-                    alert('Save functionality to be implemented');
-                  }}
+                  onClick={saveEditedOrder}
                   className="bg-blue-600 text-black px-4 py-2 rounded-md hover:bg-blue-700"
                 >
                   Save Changes

@@ -91,6 +91,44 @@ export default function EmployeesPage() {
         }
     };
 
+    const exportEmployees = (format: 'csv' | 'excel') => {
+        if (!user || user.role !== 'admin') {
+            alert('Only admin users can export employee data');
+            return;
+        }
+
+        if (!employees || employees.length === 0) {
+            alert('No employee data to export');
+            return;
+        }
+
+        const headers = ['S.No', 'Employee ID', 'Name', 'Username', 'Email', 'Phone', 'Role', 'Created At'];
+        const rows = employees.map((emp, idx) => [
+            String(idx + 1),
+            emp.employeeId || '',
+            emp.name || '',
+            emp.username || '',
+            emp.email || '',
+            emp.phone || '',
+            emp.role || '',
+            emp.createdAt ? new Date(emp.createdAt).toISOString() : ''
+        ]);
+
+        const csvContent = [headers, ...rows].map(r => r.map(c => `"${(c || '').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const filename = `employees_export_${new Date().toISOString().slice(0,10)}.${format === 'csv' ? 'csv' : 'xls'}`;
+
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
     const showNotification = (type: string, message: string) => {
         setNotification({ type, message });
         setTimeout(() => {
@@ -258,8 +296,11 @@ export default function EmployeesPage() {
                     >
                         Add New Employee
                     </button>
-                    <button className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
-                        Export
+                    <button onClick={() => exportEmployees('csv')} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 mr-2">
+                        Export CSV
+                    </button>
+                    <button onClick={() => exportEmployees('excel')} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
+                        Export Excel
                     </button>
                 </div>
                 <div className="flex items-center">
