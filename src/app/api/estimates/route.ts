@@ -68,12 +68,52 @@ export async function POST(request: NextRequest) {
     
     // Generate estimate ID if not provided
     if (!data.estimate_id) {
-      // Get count of estimates to generate a sequential ID
-      const count = await Estimate.countDocuments();
-      data.estimate_id = `EST-${String(count + 1).padStart(3, '0')}`;
+      // Use a retry loop to avoid duplicate IDs under concurrency
+      let attempts = 0;
+      const maxAttempts = 5;
+      while (attempts < maxAttempts) {
+        // Find the latest estimate_id and increment it
+        const lastEstimate = await Estimate.findOne({}).sort({ estimate_id: -1 }).lean();
+        const lastNumber = lastEstimate?.estimate_id
+          ? parseInt(lastEstimate.estimate_id.replace(/[^\d]/g, ''), 10) || 0
+          : 0;
+        const nextNumber = lastNumber + 1;
+        const nextId = `EST-${String(nextNumber).padStart(3, '0')}`;
+        try {
+          data.estimate_id = nextId;
+          // Attempt create inside the loop so duplicate key throws here
+          const newEstimate = await Estimate.create(data);
+
+          // Update the order with the estimate ID and change status
+          await Order.findOneAndUpdate(
+            { order_id: data.order_id },
+            { 
+              estimate_id: newEstimate.estimate_id,
+              status: 'Pending'
+            }
+          );
+
+          return NextResponse.json(
+            { message: 'Estimate created successfully', estimate: newEstimate },
+            { status: 201 }
+          );
+        } catch (err: any) {
+          // Retry only for duplicate key errors
+          if (err?.code === 11000) {
+            attempts += 1;
+            continue;
+          }
+          throw err;
+        }
+      }
+      // If we exhaust retries, return a conflict
+      return NextResponse.json(
+        { error: 'Could not generate a unique estimate ID after multiple attempts' },
+        { status: 409 }
+      );
     }
     
-    // Create a new estimate with the data
+    // Create a new estimate with the provided estimate_id (if caller set it)
     const newEstimate = await Estimate.create(data);
     
     // Update the order with the estimate ID and change status

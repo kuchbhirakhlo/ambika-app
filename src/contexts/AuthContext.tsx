@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
+  role: User | null;
   id: string;
   name: string;
   email: string;
@@ -88,7 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (email: string, password: string) => {
     setLoading(true);
-    
+
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -97,17 +98,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         },
         body: JSON.stringify({ email, password }),
       });
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || 'Login failed');
       }
-      
+
       const data = await response.json();
-      
+
       // Store token in localStorage
       localStorage.setItem('auth-token', data.token);
-      
+
       // Set user data
       setUser(data.user);
     } catch (error) {
@@ -117,12 +118,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setLoading(false);
     }
   };
-  
+
   const logout = () => {
     localStorage.removeItem('auth-token');
     setUser(null);
   };
-  
+
   const value = {
     user,
     loading,
@@ -130,7 +131,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     isAuthenticated: !!user
   };
-  
+
   return (
     <AuthContext.Provider value={value}>
       {children}
