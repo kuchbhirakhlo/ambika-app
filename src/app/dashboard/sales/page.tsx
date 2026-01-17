@@ -114,6 +114,7 @@ export default function SalesPage() {
   // Estimate state
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [isGeneratingEstimate, setIsGeneratingEstimate] = useState(false);
+  const [estimateOrderBalance, setEstimateOrderBalance] = useState<number>(0);
 
   useEffect(() => {
     if (activeTab === "orders") {
@@ -381,12 +382,31 @@ export default function SalesPage() {
   // Estimate actions
   const viewEstimateDetails = async (estimateId: string) => {
     try {
-      const response = await fetch(`/api/estimates/${estimateId}`);
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+      const estimateResponse = await fetch(`/api/estimates/${estimateId}`);
+      if (!estimateResponse.ok) {
+        throw new Error(`Error: ${estimateResponse.status}`);
       }
-      const data = await response.json();
-      setSelectedEstimate(data.estimate);
+      const estimateData = await estimateResponse.json();
+      const estimate = estimateData.estimate;
+      setSelectedEstimate(estimate);
+
+      // Fetch the parent order to get balance amount
+      if (estimate && estimate.order_id) {
+        const orderResponse = await fetch(`/api/orders/${estimate.order_id}`);
+        if (orderResponse.ok) {
+          const orderData = await orderResponse.json();
+          if (orderData.order) {
+            setEstimateOrderBalance(orderData.order.balance_amount || 0);
+          } else {
+            setEstimateOrderBalance(0);
+          }
+        } else {
+          setEstimateOrderBalance(0);
+        }
+      } else {
+        setEstimateOrderBalance(0);
+      }
+
       setShowEstimateViewModal(true);
     } catch (error) {
       console.error("Error loading estimate:", error);
@@ -1655,6 +1675,10 @@ export default function SalesPage() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
                     <p className="text-sm text-gray-900">{formatCurrency(selectedEstimate.total_amount)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Balance Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(estimateOrderBalance)}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
