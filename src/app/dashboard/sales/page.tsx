@@ -453,10 +453,264 @@ export default function SalesPage() {
     }
   };
 
-  const printEstimate = (estimateId: string) => {
-    // Implementation for printing an estimate
-    console.log("Print estimate:", estimateId);
-    window.print();
+  const printEstimate = async (estimateId: string) => {
+    try {
+      // Fetch the estimate details
+      const estimateResponse = await fetch(`/api/estimates/${estimateId}`);
+      if (!estimateResponse.ok) {
+        throw new Error(`Error: ${estimateResponse.status}`);
+      }
+      const estimateData = await estimateResponse.json();
+      const estimate = estimateData.estimate;
+
+      // Fetch the parent order to get balance amount
+      let orderBalance = 0;
+      let orderAdvance = 0;
+      if (estimate && estimate.order_id) {
+        const orderResponse = await fetch(`/api/orders/${estimate.order_id}`);
+        if (orderResponse.ok) {
+          const orderData = await orderResponse.json();
+          if (orderData.order) {
+            orderBalance = orderData.order.balance_amount || 0;
+            orderAdvance = orderData.order.advance_amount || 0;
+          }
+        }
+      }
+
+      // Create printable content
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Estimate ${estimate.estimate_id}</title>
+            <style>
+              @page {
+                size: A4;
+                margin: 0;
+              }
+              body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                color: #333;
+                background: white;
+              }
+              .bill-container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+              }
+              .header {
+                text-align: center;
+                border-bottom: 2px solid #333;
+                padding-bottom: 15px;
+                margin-bottom: 20px;
+              }
+              .company-name {
+                font-size: 28px;
+                font-weight: bold;
+                margin-bottom: 5px;
+              }
+              .company-details {
+                font-size: 12px;
+                color: #666;
+              }
+              .bill-title {
+                font-size: 20px;
+                font-weight: bold;
+                text-align: center;
+                margin: 20px 0;
+                text-transform: uppercase;
+              }
+              .info-section {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 20px;
+              }
+              .info-block {
+                width: 48%;
+              }
+              .info-label {
+                font-weight: bold;
+                font-size: 12px;
+                color: #666;
+              }
+              .info-value {
+                font-size: 14px;
+                margin-bottom: 3px;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+              }
+              th, td {
+                border: 1px solid #ddd;
+                padding: 10px 8px;
+                text-align: left;
+                font-size: 13px;
+              }
+              th {
+                background-color: #f5f5f5;
+                font-weight: bold;
+              }
+              .text-right {
+                text-align: right;
+              }
+              .text-center {
+                text-align: center;
+              }
+              .total-section {
+                margin-top: 20px;
+                border-top: 2px solid #333;
+                padding-top: 15px;
+              }
+              .total-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+                font-size: 14px;
+              }
+              .grand-total {
+                font-size: 18px;
+                font-weight: bold;
+                border-top: 1px solid #333;
+                padding-top: 10px;
+                margin-top: 10px;
+              }
+              .signature-section {
+                margin-top: 50px;
+                display: flex;
+                justify-content: space-between;
+              }
+              .signature-box {
+                width: 45%;
+                text-align: center;
+              }
+              .signature-line {
+                border-top: 1px solid #333;
+                margin-top: 60px;
+                padding-top: 5px;
+                font-size: 12px;
+              }
+              .footer {
+                margin-top: 30px;
+                text-align: center;
+                font-size: 11px;
+                color: #777;
+                border-top: 1px solid #ddd;
+                padding-top: 15px;
+              }
+              @media print {
+                body {
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="bill-container">
+              <div class="header">
+                <div class="company-name">AMBIKA ENTERPRISE</div>
+                <div class="company-details">
+                  GST No: 27AABFA2145K1ZW | Mumbai, India<br>
+                  Phone: +91 98765 43210 | Email: info@ambikaenterprise.com
+                </div>
+              </div>
+
+              <div class="bill-title">ESTIMATE</div>
+
+              <div class="info-section">
+                <div class="info-block">
+                  <div class="info-label">Estimate No:</div>
+                  <div class="info-value">${estimate.estimate_id}</div>
+                  <div class="info-label">Order No:</div>
+                  <div class="info-value">${estimate.order_id}</div>
+                  <div class="info-label">Date:</div>
+                  <div class="info-value">${format(new Date(estimate.date), "dd/MM/yyyy")}</div>
+                </div>
+                <div class="info-block">
+                  <div class="info-label">Customer:</div>
+                  <div class="info-value">${estimate.customer_name}</div>
+                  <div class="info-label">Agent:</div>
+                  <div class="info-value">${estimate.agent_name}</div>
+                </div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th class="text-center">Sr.</th>
+                    <th>Product Code</th>
+                    <th>Description</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-right">Rate (₹)</th>
+                    <th class="text-right">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${estimate.items.map((item: OrderItem, index: number) => `
+                    <tr>
+                      <td class="text-center">${index + 1}</td>
+                      <td>${item.product_code}</td>
+                      <td>${item.product_name}</td>
+                      <td class="text-center">${item.quantity}</td>
+                      <td class="text-right">${item.rate.toLocaleString('en-IN')}</td>
+                      <td class="text-right">${item.total.toLocaleString('en-IN')}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+
+              <div class="total-section">
+                <div class="total-row">
+                  <span>Total Items:</span>
+                  <span>${estimate.total_items}</span>
+                </div>
+                <div class="total-row grand-total">
+                  <span>Total Amount:</span>
+                  <span>₹${estimate.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
+              </div>
+
+              <div class="signature-section">
+                <div class="signature-box">
+                  <div class="signature-line">Customer Signature</div>
+                </div>
+                <div class="signature-box">
+                  <div class="signature-line">For AMBIKA ENTERPRISE</div>
+                </div>
+              </div>
+
+              <div class="footer">
+                <p>This is a computer generated estimate and does not require signature.</p>
+                <p>Thank you for your business!</p>
+              </div>
+            </div>
+
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+      } else {
+        alert("Please allow pop-ups to print the estimate.");
+      }
+    } catch (error) {
+      console.error("Error printing estimate:", error);
+      alert("Failed to print estimate. Please try again.");
+    }
   };
 
   const getEstimateStatusBadgeColor = (status: string) => {
