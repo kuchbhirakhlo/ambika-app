@@ -107,24 +107,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               Sales
             </Link>
-            <Link
-              href="/dashboard/customers"
-              className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/customers' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
-            >
-              Customer
-            </Link>
-            <Link
-              href="/dashboard/inventory"
-              className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/inventory' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
-            >
-              Inventory
-            </Link>
-            <Link
-              href="/dashboard/products"
-              className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/products' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
-            >
-              Product
-            </Link>
+            {user.role === 'admin' && (
+              <Link
+                href="/dashboard/customers"
+                className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/customers' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
+              >
+                Customer
+              </Link>
+            )}
+            {user.role === 'admin' && (
+              <>
+                <Link
+                  href="/dashboard/inventory"
+                  className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/inventory' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
+                >
+                  Inventory
+                </Link>
+                <Link
+                  href="/dashboard/products"
+                  className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/products' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
+                >
+                  Product
+                </Link>
+              </>
+            )}
             {user.role === 'admin' && (
               <>
                 <Link
@@ -173,4 +179,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </footer>
     </div>
   );
-} 
+}

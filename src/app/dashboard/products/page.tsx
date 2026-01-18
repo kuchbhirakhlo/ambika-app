@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { generatePDF } from "@/utils/pdf-fix";
 
 interface Product {
@@ -43,11 +44,44 @@ export default function Products() {
   const [currentSortField, setCurrentSortField] = useState<string | null>("name");
   const [currentSortDirection, setCurrentSortDirection] = useState<"asc" | "desc">("asc");
   const [codeError, setCodeError] = useState("");
+  const router = useRouter();
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
+    // Check if user has access - only admin and employee can access products
+    const userStr = sessionStorage.getItem("user");
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        console.log('Products page - User role:', userData.role);
+        if (userData.role !== 'admin') {
+          console.log('Non-admin detected, redirecting to sales...');
+          router.push('/dashboard/sales');
+          setAccessDenied(true);
+          return;
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        router.push('/login');
+        return;
+      }
+    } else {
+      router.push('/login');
+      return;
+    }
+    
     loadProducts();
     loadSuppliers();
-  }, []);
+  }, [router]);
+
+  // Show access denied message while redirecting
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-xl font-semibold text-gray-600">Redirecting...</div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     filterProducts();

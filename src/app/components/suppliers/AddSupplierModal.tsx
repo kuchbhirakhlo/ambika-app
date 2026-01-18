@@ -16,14 +16,10 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
   
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
-    contact: "Same as owner", // Default value
-    category: "General",      // Default value
-    status: "Active",         // Default value
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -51,11 +47,7 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
       // Reset form
       setFormData({
         name: "",
-        email: "",
         phone: "",
-        contact: "Same as owner",
-        category: "General",
-        status: "Active",
       });
       
       // Notify success and close modal
@@ -105,21 +97,6 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
             />
           </div>
           
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-              Email*
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              required
-            />
-          </div>
-          
           <div className="mb-6">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phone">
               Phone*
@@ -155,4 +132,4 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
       </div>
     </div>
   );
-} 
+}

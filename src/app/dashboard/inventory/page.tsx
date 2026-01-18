@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 interface Product {
   _id: string;
@@ -41,11 +42,44 @@ export default function Inventory() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const router = useRouter();
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
+    // Check if user has access - only admin and employee can access inventory
+    const userStr = sessionStorage.getItem("user");
+    if (userStr) {
+      try {
+        const userData = JSON.parse(userStr);
+        console.log('Inventory page - User role:', userData.role);
+        if (userData.role !== 'admin') {
+          console.log('Non-admin detected, redirecting to sales...');
+          router.push('/dashboard/sales');
+          setAccessDenied(true);
+          return;
+        }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        router.push('/login');
+        return;
+      }
+    } else {
+      router.push('/login');
+      return;
+    }
+    
     loadInventory();
     loadProducts();
-  }, []);
+  }, [router]);
+
+  // Show access denied message while redirecting
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-xl font-semibold text-gray-600">Redirecting...</div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     filterInventory();
@@ -483,18 +517,16 @@ export default function Inventory() {
             <p className="mb-4">Current quantity: {selectedItem.quantity}</p>
             
             <div className="mb-6">
-              <label htmlFor="quantity-select" className="block text-gray-700 mb-2">Quantity to ADD:</label>
-              <select 
-                id="quantity-select" 
+              <label htmlFor="quantity-input" className="block text-gray-700 mb-2">Quantity to ADD:</label>
+              <input 
+                type="number" 
+                id="quantity-input"
                 className="w-full border border-gray-300 rounded px-3 py-2"
                 value={quantityToAdd}
-                onChange={(e) => setQuantityToAdd(parseInt(e.target.value))}
+                onChange={(e) => setQuantityToAdd(parseInt(e.target.value) || 0)}
                 autoFocus
-              >
-                {[...Array(100)].map((_, i) => (
-                  <option key={i+1} value={i+1}>{i+1}</option>
-                ))}
-              </select>
+                min="1"
+              />
               <small className="text-gray-500 mt-1 block">This quantity will be ADDED to the existing inventory.</small>
             </div>
             
@@ -522,17 +554,17 @@ export default function Inventory() {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Update Inventory</h2>
+              <h2 className="text-xl text-black font-bold">Update Inventory</h2>
               <button onClick={closeModal} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             
             <p className="mb-4">Select a product to update inventory:</p>
             
             <div className="mb-4">
-              <label htmlFor="product-select" className="block text-gray-700 mb-2">Product:</label>
+              <label htmlFor="product-select" className="block text-black mb-2">Product:</label>
               <select 
                 id="product-select" 
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-gray-300 text-black rounded px-3 py-2"
                 value={selectedProductId || ""}
                 onChange={(e) => setSelectedProductId(e.target.value)}
                 autoFocus
@@ -545,17 +577,15 @@ export default function Inventory() {
             </div>
             
             <div className="mb-6">
-              <label htmlFor="add-quantity-select" className="block text-gray-700 mb-2">Quantity to ADD:</label>
-              <select 
-                id="add-quantity-select" 
-                className="w-full border border-gray-300 rounded px-3 py-2"
+              <label htmlFor="add-quantity-input" className="block text-gray-700 mb-2">Quantity to ADD:</label>
+              <input 
+                type="number" 
+                id="add-quantity-input"
+                className="w-full border text-black border-gray-300 rounded px-3 py-2"
                 value={quantityToAdd}
-                onChange={(e) => setQuantityToAdd(parseInt(e.target.value))}
-              >
-                {[...Array(100)].map((_, i) => (
-                  <option key={i+1} value={i+1}>{i+1}</option>
-                ))}
-              </select>
+                onChange={(e) => setQuantityToAdd(parseInt(e.target.value) || 0)}
+                min="1"
+              />
               <small className="text-gray-500 mt-1 block">This quantity will be ADDED to the existing inventory.</small>
             </div>
             
@@ -579,4 +609,4 @@ export default function Inventory() {
       )}
     </div>
   );
-} 
+}

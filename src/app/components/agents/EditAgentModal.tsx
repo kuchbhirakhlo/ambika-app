@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation";
 interface Agent {
   _id: string;
   name: string;
-  contact: string;
-  email: string;
   city: string;
 }
 
@@ -26,8 +24,6 @@ export default function EditAgentModal({ isOpen, onClose, onSuccess, agentId }: 
   
   const [formData, setFormData] = useState({
     name: "",
-    contact: "",
-    email: "",
     city: "",
   });
 
@@ -52,8 +48,6 @@ export default function EditAgentModal({ isOpen, onClose, onSuccess, agentId }: 
       const agent = data.agent;
       setFormData({
         name: agent.name,
-        contact: agent.contact,
-        email: agent.email || "",
         city: agent.city,
       });
     } catch (error: any) {
@@ -142,21 +136,6 @@ export default function EditAgentModal({ isOpen, onClose, onSuccess, agentId }: 
             </div>
             
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="contact">
-                Contact Number*
-              </label>
-              <input
-                type="text"
-                id="contact"
-                name="contact"
-                value={formData.contact}
-                onChange={handleChange}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="city">
                 City*
               </label>
@@ -168,20 +147,6 @@ export default function EditAgentModal({ isOpen, onClose, onSuccess, agentId }: 
                 onChange={handleChange}
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 required
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               />
             </div>
             
@@ -206,4 +171,4 @@ export default function EditAgentModal({ isOpen, onClose, onSuccess, agentId }: 
       </div>
     </div>
   );
-} 
+}

@@ -6,11 +6,7 @@ import { useRouter } from "next/navigation";
 interface Supplier {
   _id: string;
   name: string;
-  contact: string;
-  email: string;
   phone: string;
-  category: string;
-  status: string;
 }
 
 interface EditSupplierModalProps {
@@ -28,11 +24,7 @@ export default function EditSupplierModal({ isOpen, onClose, onSuccess, supplier
   
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
-    contact: "",
-    category: "",
-    status: "Active",
   });
 
   useEffect(() => {
@@ -56,11 +48,7 @@ export default function EditSupplierModal({ isOpen, onClose, onSuccess, supplier
       const supplier = data.supplier;
       setFormData({
         name: supplier.name,
-        email: supplier.email,
         phone: supplier.phone,
-        contact: supplier.contact,
-        category: supplier.category,
-        status: supplier.status,
       });
     } catch (error: any) {
       setError(error.message);
@@ -69,7 +57,7 @@ export default function EditSupplierModal({ isOpen, onClose, onSuccess, supplier
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -147,21 +135,6 @@ export default function EditSupplierModal({ isOpen, onClose, onSuccess, supplier
               />
             </div>
             
-            <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-                Email*
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                required
-              />
-            </div>
-            
             <div className="mb-6">
               <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phone">
                 Phone*
@@ -198,4 +171,4 @@ export default function EditSupplierModal({ isOpen, onClose, onSuccess, supplier
       </div>
     </div>
   );
-} 
+}

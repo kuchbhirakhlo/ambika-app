@@ -1677,6 +1677,10 @@ export default function SalesPage() {
                     <p className="text-sm text-gray-900">{formatCurrency(selectedEstimate.total_amount)}</p>
                   </div>
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Advance Amount</label>
+                    <p className="text-sm text-gray-900">{formatCurrency(selectedEstimate.total_amount - estimateOrderBalance)}</p>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Balance Amount</label>
                     <p className="text-sm text-gray-900">{formatCurrency(estimateOrderBalance)}</p>
                   </div>
