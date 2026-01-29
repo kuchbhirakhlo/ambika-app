@@ -483,218 +483,239 @@ export default function SalesPage() {
         <html>
           <head>
             <title>Estimate ${estimate.estimate_id}</title>
-            <style>
-              @page {
-                size: A4;
-                margin: 0;
-              }
-              body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
-                color: #333;
-                background: white;
-              }
-              .bill-container {
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-              }
-              .header {
-                text-align: center;
-                border-bottom: 2px solid #333;
-                padding-bottom: 15px;
-                margin-bottom: 20px;
-              }
-              .company-name {
-                font-size: 28px;
-                font-weight: bold;
-                margin-bottom: 5px;
-              }
-              .company-details {
-                font-size: 12px;
-                color: #666;
-              }
-              .bill-title {
-                font-size: 20px;
-                font-weight: bold;
-                text-align: center;
-                margin: 20px 0;
-                text-transform: uppercase;
-              }
-              .info-section {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 20px;
-              }
-              .info-block {
-                width: 48%;
-              }
-              .info-label {
-                font-weight: bold;
-                font-size: 12px;
-                color: #666;
-              }
-              .info-value {
-                font-size: 14px;
-                margin-bottom: 3px;
-              }
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-bottom: 20px;
-              }
-              th, td {
-                border: 1px solid #ddd;
-                padding: 10px 8px;
-                text-align: left;
-                font-size: 13px;
-              }
-              th {
-                background-color: #f5f5f5;
-                font-weight: bold;
-              }
-              .text-right {
-                text-align: right;
-              }
-              .text-center {
-                text-align: center;
-              }
-              .total-section {
-                margin-top: 20px;
-                border-top: 2px solid #333;
-                padding-top: 15px;
-              }
-              .total-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 8px;
-                font-size: 14px;
-              }
-              .grand-total {
-                font-size: 18px;
-                font-weight: bold;
-                border-top: 1px solid #333;
-                padding-top: 10px;
-                margin-top: 10px;
-              }
-              .signature-section {
-                margin-top: 50px;
-                display: flex;
-                justify-content: space-between;
-              }
-              .signature-box {
-                width: 45%;
-                text-align: center;
-              }
-              .signature-line {
-                border-top: 1px solid #333;
-                margin-top: 60px;
-                padding-top: 5px;
-                font-size: 12px;
-              }
-              .footer {
-                margin-top: 30px;
-                text-align: center;
-                font-size: 11px;
-                color: #777;
-                border-top: 1px solid #ddd;
-                padding-top: 15px;
-              }
-              @media print {
-                body {
-                  -webkit-print-color-adjust: exact;
-                  print-color-adjust: exact;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="bill-container">
-              <div class="header">
-                <div class="company-name">AMBIKA ENTERPRISE</div>
-                <div class="company-details">
-                  GST No: 27AABFA2145K1ZW | Mumbai, India<br>
-                  Phone: +91 98765 43210 | Email: info@ambikaenterprise.com
-                </div>
-              </div>
+           <style>
+  @page {
+    size: A4;
+    margin: 0;
+  }
 
-              <div class="bill-title">ESTIMATE</div>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    color: #000;
+    background: white;
+  }
 
-              <div class="info-section">
-                <div class="info-block">
-                  <div class="info-label">Estimate No:</div>
-                  <div class="info-value">${estimate.estimate_id}</div>
-                  <div class="info-label">Order No:</div>
-                  <div class="info-value">${estimate.order_id}</div>
-                  <div class="info-label">Date:</div>
-                  <div class="info-value">${format(new Date(estimate.date), "dd/MM/yyyy")}</div>
-                </div>
-                <div class="info-block">
-                  <div class="info-label">Customer:</div>
-                  <div class="info-value">${estimate.customer_name}</div>
-                  <div class="info-label">Agent:</div>
-                  <div class="info-value">${estimate.agent_name}</div>
-                </div>
-              </div>
+ .bill-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 15px;
+  border: 2px solid #000;
 
-              <table>
-                <thead>
-                  <tr>
-                    <th class="text-center">Sr.</th>
-                    <th>Product Code</th>
-                    <th>Description</th>
-                    <th class="text-center">Qty</th>
-                    <th class="text-right">Rate (₹)</th>
-                    <th class="text-right">Amount (₹)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${estimate.items.map((item: OrderItem, index: number) => `
-                    <tr>
-                      <td class="text-center">${index + 1}</td>
-                      <td>${item.product_code}</td>
-                      <td>${item.product_name}</td>
-                      <td class="text-center">${item.quantity}</td>
-                      <td class="text-right">${item.rate.toLocaleString('en-IN')}</td>
-                      <td class="text-right">${item.total.toLocaleString('en-IN')}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
+  /* IMPORTANT */
+  min-height: calc(280mm - 30px); /* Full A4 height minus margins */
+  display: flex;
+  flex-direction: column;
+}
 
-              <div class="total-section">
-                <div class="total-row">
-                  <span>Total Items:</span>
-                  <span>${estimate.total_items}</span>
-                </div>
-                <div class="total-row grand-total">
-                  <span>Total Amount:</span>
-                  <span>₹${estimate.total_amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                </div>
-              </div>
 
-              <div class="signature-section">
-                <div class="signature-box">
-                  <div class="signature-line">Customer Signature</div>
-                </div>
-                <div class="signature-box">
-                  <div class="signature-line">For AMBIKA ENTERPRISE</div>
-                </div>
-              </div>
+  .company-name {
+    font-size: 22px;
+    font-weight: bold;
+  }
 
-              <div class="footer">
-                <p>This is a computer generated estimate and does not require signature.</p>
-                <p>Thank you for your business!</p>
-              </div>
-            </div>
+  .company-details {
+    font-size: 12px;
+  }
 
-            <script>
-              window.onload = function() {
-                window.print();
-              };
-            </script>
-          </body>
+  .bill-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 15px 0;
+    text-transform: uppercase;
+  }
+
+  .info-section {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 13px;
+  }
+
+  .info-block {
+    width: 48%;
+  }
+
+  .info-label {
+    font-weight: bold;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  th, td {
+    border: 1px solid #000;
+    padding: 6px;
+  }
+
+  th {
+    background: #f0f0f0;
+    text-align: center;
+  }
+
+  td {
+    vertical-align: middle;
+  }
+
+  .text-center { text-align: center; }
+  .text-right { text-align: right; }
+
+  .total-section {
+  margin-top: 20px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  
+}
+
+.total-left {
+  width: 50%;
+}
+
+.total-right {
+  width: 50%;
+  text-align: right;
+}
+
+.total-row {
+  padding: 4px 0;
+}
+
+.grand-total {
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 13px;
+}
+
+.summary-table td {
+  border: 1px solid #000;
+  padding: 8px;
+}
+
+.summary-label {
+  background: #e6e6e6;
+  font-weight: bold;
+}
+
+.summary-value {
+  text-align: right;
+}
+
+.total-label {
+  background: #e6e6e6;
+  font-weight: bold;
+}
+
+.total-value {
+  text-align: right;
+  font-weight: bold;
+}
+.content-area {
+  flex: 1; /* This pushes the summary to the bottom */
+}
+
+  .footer {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 11px;
+  }
+
+  @media print {
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+</style>
+
+<body>
+<div class="bill-container">
+
+  <div class="info-section">
+    <div class="info-block">
+      <div><span class="info-label">Estimate No:</span> ${estimate.estimate_id}</div>
+      <div><span class="info-label">Party:</span> ${estimate.customer_name}</div>
+      <div><span class="info-label">Address:</span> ${estimate.address}</div>
+    </div>
+        <div class="company-details text-right">
+      Date: ${format(new Date(estimate.date), "dd/MM/yyyy")}
+    </div>
+  </div>
+<div class="content-area">
+
+  <table>
+    <thead>
+      <tr>
+        <th>Sr</th>
+        <th>Particular</th>
+        <th>Dest. No</th>
+        <th>Class</th>
+        <th>Size</th>
+        <th>Qty</th>
+        <th>Rate ₹</th>
+        <th>Amount ₹</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${estimate.items.map((item, index) => `
+        <tr>
+          <td class="text-center">${index + 1}</td>
+          <td>${item.product_name}</td>
+          <td class="text-center">${item.dest_no}</td>
+          <td class="text-center">${item.class}</td>
+          <td class="text-center">${item.size || "-"}</td>
+          <td class="text-center">${item.quantity}</td>
+          <td class="text-right">${item.rate.toLocaleString('en-IN')}</td>
+          <td class="text-right">${item.total.toLocaleString('en-IN')}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  </div>
+
+  <table class="summary-table">
+  <tr>
+    <td class="summary-label" colspan="6">
+      Packages&nbsp;&nbsp;${estimate.packages || 0}
+    </td>
+    <td class="summary-label text-right">
+      P & F Charges
+    </td>
+    <td class="summary-value">
+      ${estimate.pf_charges?.toLocaleString('en-IN') || "0.00"}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="total-label" colspan="6"></td>
+    <td class="total-label text-right">
+      TOTAL Amount
+    </td>
+    <td class="total-value">
+      ${estimate.total_amount.toLocaleString('en-IN')}
+    </td>
+  </tr>
+</table>
+
+
+<script>
+  window.onload = () => window.print();
+</script>
+</body>
+
         </html>
       `;
 
