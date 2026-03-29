@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
+import { useYear } from "@/contexts/YearContext";
 
 interface Order {
   _id: string;
@@ -61,6 +62,7 @@ interface Estimate {
 
 export default function SalesPage() {
   const { user, loading: authLoading } = useAuth();
+  const { selectedYear } = useYear();
   const [activeTab, setActiveTab] = useState<"orders" | "estimates">("orders");
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -128,13 +130,13 @@ export default function SalesPage() {
     if (orders.length > 0 && activeTab === "orders") {
       filterOrders();
     }
-  }, [orders, searchTerm]);
+  }, [orders, searchTerm, selectedYear, activeTab]);
 
   useEffect(() => {
     if (estimates.length > 0 && activeTab === "estimates") {
       filterEstimates();
     }
-  }, [estimates, searchTerm]);
+  }, [estimates, searchTerm, selectedYear, activeTab]);
 
   // Helper function to get numeric advance amount
   const getAdvanceAmountNumber = (): number => {
@@ -192,31 +194,47 @@ export default function SalesPage() {
 
   const filterOrders = () => {
     if (!searchTerm.trim()) {
-      setFilteredOrders(orders);
+      const yearFiltered = orders.filter((order) => {
+        const d = order.date ? new Date(order.date) : null;
+        const year = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : null;
+        return year === selectedYear;
+      });
+      setFilteredOrders(yearFiltered);
       return;
     }
 
-    const filtered = orders.filter(
-      (order) =>
+    const filtered = orders.filter((order) => {
+      const d = order.date ? new Date(order.date) : null;
+      const year = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : null;
+      const matchesYear = year === selectedYear;
+      const matchesSearch =
         order.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.customer_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
+        order.customer_name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesYear && matchesSearch;
+    });
     setFilteredOrders(filtered);
   };
 
   const filterEstimates = () => {
     if (!searchTerm.trim()) {
-      setFilteredEstimates(estimates);
+      const yearFiltered = estimates.filter((estimate) => {
+        const d = estimate.date ? new Date(estimate.date) : null;
+        const year = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : null;
+        return year === selectedYear;
+      });
+      setFilteredEstimates(yearFiltered);
       return;
     }
 
-    const filtered = estimates.filter(
-      (estimate) =>
+    const filtered = estimates.filter((estimate) => {
+      const d = estimate.date ? new Date(estimate.date) : null;
+      const year = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : null;
+      const matchesYear = year === selectedYear;
+      const matchesSearch =
         estimate.estimate_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        estimate.customer_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
+        estimate.customer_name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesYear && matchesSearch;
+    });
     setFilteredEstimates(filtered);
   };
 
@@ -670,7 +688,7 @@ export default function SalesPage() {
       </tr>
     </thead>
     <tbody>
-      ${estimate.items.map((item, index) => `
+      ${estimate.items.map((item: any, index: number) => `
         <tr>
           <td class="text-center">${index + 1}</td>
           <td>${item.product_name}</td>
@@ -696,6 +714,26 @@ export default function SalesPage() {
     </td>
     <td class="summary-value">
       ${estimate.pf_charges?.toLocaleString('en-IN') || "0.00"}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="total-label" colspan="6"></td>
+    <td class="total-label text-right">
+      Advance Amount
+    </td>
+    <td class="total-value">
+      ${orderAdvance.toLocaleString('en-IN')}
+    </td>
+  </tr>
+
+  <tr>
+    <td class="total-label" colspan="6"></td>
+    <td class="total-label text-right">
+      Balance Amount
+    </td>
+    <td class="total-value">
+      ${orderBalance.toLocaleString('en-IN')}
     </td>
   </tr>
 

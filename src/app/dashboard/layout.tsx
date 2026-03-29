@@ -6,12 +6,22 @@ import Link from "next/link";
 import Image from "next/image";
 import { User } from "@/types/user";
 import { registerServiceWorker } from "../sw-register";
+import { YearProvider, useYear } from "@/contexts/YearContext";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <YearProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </YearProvider>
+  );
+}
+
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const { selectedYear, setSelectedYear, years } = useYear();
 
   useEffect(() => {
     // Register service worker for PWA functionality
@@ -77,6 +87,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="mr-4 hidden sm:block">
               <p className="text-sm text-white">Welcome, {user.name || user.username}</p>
               <p className="text-xs text-[#34495e]/80">{user.role}</p>
+            </div>
+
+            <div className="hidden sm:flex items-center gap-3 mr-4">
+              <div className="text-xs text-white/80 whitespace-nowrap">Year</div>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="bg-white text-[#34495e] border border-white/50 rounded px-2 py-1 text-sm"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <button
@@ -151,7 +176,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   Employee
                 </Link>
-                {/* Reports removed per requirements */}
+                <Link
+                  href="/dashboard/reports"
+                  className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/reports' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
+                >
+                  Report
+                </Link>
               </>
             )}
           </div>
@@ -163,6 +193,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="max-w-7xl mx-auto px-2">
           <p className="text-sm text-gray-800 font-medium">Welcome, {user.name || user.username}</p>
           <p className="text-xs text-gray-600">{user.role}</p>
+          <div className="mt-2 flex items-center gap-2">
+            <div className="text-xs text-gray-600 whitespace-nowrap">Year</div>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
+            >
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

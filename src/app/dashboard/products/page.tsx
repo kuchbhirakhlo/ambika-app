@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { generatePDF } from "@/utils/pdf-fix";
+import { useYear } from "@/contexts/YearContext";
 
 interface Product {
   _id: string;
@@ -46,6 +47,7 @@ export default function Products() {
   const [codeError, setCodeError] = useState("");
   const router = useRouter();
   const [accessDenied, setAccessDenied] = useState(false);
+  const { selectedYear } = useYear();
 
   useEffect(() => {
     // Check if user has access - only admin and employee can access products
@@ -86,7 +88,7 @@ export default function Products() {
   useEffect(() => {
     filterProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [products, searchTerm, categoryFilter, currentSortField, currentSortDirection]);
+  }, [products, searchTerm, categoryFilter, currentSortField, currentSortDirection, selectedYear]);
 
   const loadProducts = async () => {
     try {
@@ -137,7 +139,11 @@ export default function Products() {
         product.supplier.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "" || product.category === categoryFilter;
 
-      return matchesSearch && matchesCategory;
+      const dateStr = product.updatedAt ?? product.createdAt;
+      const d = dateStr ? new Date(dateStr) : null;
+      const year = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : null;
+
+      return matchesSearch && matchesCategory && year === selectedYear;
     });
 
     // Sort products if a sort field is selected

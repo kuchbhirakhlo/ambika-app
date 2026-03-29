@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useYear } from "@/contexts/YearContext";
 
 interface Product {
   _id: string;
@@ -44,6 +45,7 @@ export default function Inventory() {
   const [error, setError] = useState("");
   const router = useRouter();
   const [accessDenied, setAccessDenied] = useState(false);
+  const { selectedYear } = useYear();
 
   useEffect(() => {
     // Check if user has access - only admin and employee can access inventory
@@ -83,7 +85,8 @@ export default function Inventory() {
 
   useEffect(() => {
     filterInventory();
-  }, [inventory, searchTerm, stockFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inventory, searchTerm, stockFilter, selectedYear]);
 
   const loadInventory = async () => {
     try {
@@ -130,17 +133,22 @@ export default function Inventory() {
         (item.product_name && item.product_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (item.product_code && item.product_code.toLowerCase().includes(searchTerm.toLowerCase()));
 
+      const dateStr = item.updated_at;
+      const d = dateStr ? new Date(dateStr) : null;
+      const year = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : null;
+      const matchesYear = year === selectedYear;
+
       if (stockFilter === "all") {
-        return matchesSearch;
+        return matchesSearch && matchesYear;
       } else if (stockFilter === "low") {
-        return matchesSearch && item.quantity < 37;
+        return matchesSearch && matchesYear && item.quantity < 37;
       } else if (stockFilter === "medium") {
-        return matchesSearch && item.quantity >= 37 && item.quantity <= 72;
+        return matchesSearch && matchesYear && item.quantity >= 37 && item.quantity <= 72;
       } else if (stockFilter === "high") {
-        return matchesSearch && item.quantity > 72;
+        return matchesSearch && matchesYear && item.quantity > 72;
       }
 
-      return matchesSearch;
+      return matchesSearch && matchesYear;
     });
 
     // Sort by stock level (low to high)
@@ -281,10 +289,16 @@ export default function Inventory() {
     }
   };
 
-  // Count items by stock level
-  const lowStockCount = inventory.filter(item => item.quantity < 37).length;
-  const mediumStockCount = inventory.filter(item => item.quantity >= 37 && item.quantity <= 72).length;
-  const highStockCount = inventory.filter(item => item.quantity > 72).length;
+  // Count items by stock level (year-filtered)
+  const yearFilteredInventory = inventory.filter((item) => {
+    const dateStr = item.updated_at;
+    const d = dateStr ? new Date(dateStr) : null;
+    const year = d && !Number.isNaN(d.getTime()) ? d.getFullYear().toString() : null;
+    return year === selectedYear;
+  });
+  const lowStockCount = yearFilteredInventory.filter(item => item.quantity < 37).length;
+  const mediumStockCount = yearFilteredInventory.filter(item => item.quantity >= 37 && item.quantity <= 72).length;
+  const highStockCount = yearFilteredInventory.filter(item => item.quantity > 72).length;
 
   return (
     <div className="container mx-auto px-4">
@@ -319,7 +333,7 @@ export default function Inventory() {
         
         <div className="bg-purple-600 text-white rounded-lg shadow-md p-4 sm:p-6">
           <h3 className="text-lg font-medium">Total Products</h3>
-          <div className="text-2xl sm:text-4xl font-bold my-2 sm:my-3">{inventory.length}</div>
+          <div className="text-2xl sm:text-4xl font-bold my-2 sm:my-3">{yearFilteredInventory.length}</div>
           <div className="flex justify-between text-xs sm:text-sm">
             <span>All items</span>
             <span>In inventory</span>

@@ -1,59 +1,123 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useYear } from "@/contexts/YearContext";
 
 interface ReportData {
   totalSales: number;
   totalOrders: number;
   totalCustomers: number;
   totalProducts: number;
-  revenueData: { date: string; amount: number }[];
   topProducts: { name: string; sales: number }[];
   lowStockItems: { name: string; stock: number }[];
+  monthlySales: { month: string; amount: number }[];
 }
 
 export default function Reports() {
+  const { selectedYear } = useYear();
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState("");
-  const [dateRange, setDateRange] = useState("last30days");
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     loadReportData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear]);
 
   const loadReportData = async () => {
     try {
       setLoading(true);
-      // Simulate API call - replace with actual API endpoints
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockData: ReportData = {
-        totalSales: 125000,
-        totalOrders: 45,
-        totalCustomers: 32,
-        totalProducts: 156,
-        revenueData: [
-          { date: "2024-01-01", amount: 12000 },
-          { date: "2024-01-02", amount: 15000 },
-          { date: "2024-01-03", amount: 18000 },
-          { date: "2024-01-04", amount: 22000 },
-          { date: "2024-01-05", amount: 19000 },
-        ],
-        topProducts: [
-          { name: "Product A", sales: 45 },
-          { name: "Product B", sales: 38 },
-          { name: "Product C", sales: 32 },
-        ],
-        lowStockItems: [
-          { name: "Item X", stock: 5 },
-          { name: "Item Y", stock: 3 },
-          { name: "Item Z", stock: 8 },
-        ]
-      };
-      
-      setReportData(mockData);
+
+      const [ordersRes, estimatesRes, productsRes, inventoryRes, customersRes] = await Promise.all([
+        fetch('/api/orders'),
+        fetch('/api/estimates'),
+        fetch('/api/products'),
+        fetch('/api/inventory'),
+        fetch('/api/customers'),
+      ]);
+
+      const ordersData = ordersRes.ok ? await ordersRes.json() : { orders: [] };
+      const estimatesData = estimatesRes.ok ? await estimatesRes.json() : { estimates: [] };
+      const productsData = productsRes.ok ? await productsRes.json() : { products: [] };
+      const inventoryData = inventoryRes.ok ? await inventoryRes.json() : { inventory: [] };
+      const customersData = customersRes.ok ? await customersRes.json() : { customers: [] };
+
+      const allOrders: any[] = ordersData.orders || [];
+      const allEstimates: any[] = estimatesData.estimates || [];
+      const allProducts: any[] = productsData.products || [];
+      const allInventory: any[] = inventoryData.inventory || [];
+      const allCustomers: any[] = customersData.customers || [];
+
+      // Filter orders by selected year
+      const yearOrders = allOrders.filter((order) => {
+        const d = order.date ? new Date(order.date) : null;
+        return d && !Number.isNaN(d.getTime()) && d.getFullYear().toString() === selectedYear;
+      });
+
+      // Filter estimates by selected year
+      const yearEstimates = allEstimates.filter((est) => {
+        const d = est.date ? new Date(est.date) : null;
+        return d && !Number.isNaN(d.getTime()) && d.getFullYear().toString() === selectedYear;
+      });
+
+      // Filter inventory by selected year
+      const yearInventory = allInventory.filter((item) => {
+        const dateStr = item.updated_at || item.createdAt;
+        const d = dateStr ? new Date(dateStr) : null;
+        return d && !Number.isNaN(d.getTime()) && d.getFullYear().toString() === selectedYear;
+      });
+
+      // Calculate total sales from orders
+      const totalSales = yearOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
+      // Count unique customers from orders
+      const uniqueCustomers = new Set(yearOrders.map(o => o.customer_name).filter(Boolean));
+
+      // Build top products from order items
+      const productSales: Record<string, number> = {};
+      yearOrders.forEach((order) => {
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach((item: any) => {
+            const name = item.product_name || item.product_code || "Unknown";
+            productSales[name] = (productSales[name] || 0) + (item.quantity || 0);
+          });
+        }
+      });
+      const topProducts = Object.entries(productSales)
+        .map(([name, sales]) => ({ name, sales }))
+        .sort((a, b) => b.sales - a.sales)
+        .slice(0, 5);
+
+      // Low stock items from year-filtered inventory
+      const lowStockItems = yearInventory
+        .filter(item => (item.quantity || 0) < 37)
+        .map(item => ({ name: item.product_name || "Unknown", stock: item.quantity || 0 }))
+        .sort((a, b) => a.stock - b.stock)
+        .slice(0, 5);
+
+      // Monthly sales breakdown
+      const monthlySalesMap: Record<string, number> = {};
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      months.forEach(m => { monthlySalesMap[m] = 0; });
+      yearOrders.forEach((order) => {
+        const d = order.date ? new Date(order.date) : null;
+        if (d && !Number.isNaN(d.getTime())) {
+          const monthKey = months[d.getMonth()];
+          monthlySalesMap[monthKey] = (monthlySalesMap[monthKey] || 0) + (order.total_amount || 0);
+        }
+      });
+      const monthlySales = months.map(month => ({ month, amount: monthlySalesMap[month] || 0 }));
+
+      setReportData({
+        totalSales,
+        totalOrders: yearOrders.length,
+        totalCustomers: uniqueCustomers.size,
+        totalProducts: allProducts.length,
+        topProducts,
+        lowStockItems,
+        monthlySales,
+      });
     } catch (error) {
       console.error("Error loading report data:", error);
     } finally {
@@ -64,14 +128,21 @@ export default function Reports() {
   const generateReport = async () => {
     setIsGenerating(true);
     try {
-      // Simulate report generation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert(`Generating ${selectedReport} report for ${dateRange}...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      alert(`Report "${selectedReport}" generated for year ${selectedYear}.`);
     } catch (error) {
       console.error("Error generating report:", error);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return amount.toLocaleString('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    });
   };
 
   if (loading) {
@@ -87,7 +158,7 @@ export default function Reports() {
     <>
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Reports & Analytics</h2>
-        <p className="text-gray-600">Generate and view business reports and data insights</p>
+        <p className="text-gray-600">Showing data for year: <span className="font-semibold">{selectedYear}</span></p>
       </div>
 
       {/* Key Metrics Cards */}
@@ -102,7 +173,7 @@ export default function Reports() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Sales</p>
-                <p className="text-2xl font-semibold text-gray-900">₹{reportData.totalSales.toLocaleString()}</p>
+                <p className="text-2xl font-semibold text-gray-900">{formatCurrency(reportData.totalSales)}</p>
               </div>
             </div>
           </div>
@@ -151,6 +222,33 @@ export default function Reports() {
         </div>
       )}
 
+      {/* Monthly Sales Chart */}
+      {reportData && reportData.monthlySales.length > 0 && (
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h3 className="text-lg font-medium text-gray-800 mb-4">Monthly Sales - {selectedYear}</h3>
+          <div className="overflow-x-auto">
+            <div className="flex items-end space-x-2 min-w-[600px] h-48">
+              {reportData.monthlySales.map((item) => {
+                const maxAmount = Math.max(...reportData.monthlySales.map(s => s.amount), 1);
+                const height = item.amount > 0 ? Math.max((item.amount / maxAmount) * 160, 8) : 4;
+                return (
+                  <div key={item.month} className="flex-1 flex flex-col items-center">
+                    <span className="text-xs text-gray-600 mb-1">
+                      {item.amount > 0 ? formatCurrency(item.amount) : "-"}
+                    </span>
+                    <div
+                      className="w-full bg-blue-500 rounded-t"
+                      style={{ height: `${height}px` }}
+                    ></div>
+                    <span className="text-xs text-gray-500 mt-1">{item.month}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="mb-4">
@@ -158,7 +256,7 @@ export default function Reports() {
             <p className="text-sm text-gray-500">Track your sales performance over time</p>
           </div>
           <div className="space-y-3">
-            <button 
+            <button
               onClick={() => setSelectedReport("daily-sales")}
               className="w-full flex items-center justify-between text-left bg-gray-50 hover:bg-gray-100 px-4 py-3 rounded-lg transition-colors"
             >
@@ -172,7 +270,7 @@ export default function Reports() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <button 
+            <button
               onClick={() => setSelectedReport("monthly-revenue")}
               className="w-full flex items-center justify-between text-left bg-gray-50 hover:bg-gray-100 px-4 py-3 rounded-lg transition-colors"
             >
@@ -186,7 +284,7 @@ export default function Reports() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <button 
+            <button
               onClick={() => setSelectedReport("product-performance")}
               className="w-full flex items-center justify-between text-left bg-gray-50 hover:bg-gray-100 px-4 py-3 rounded-lg transition-colors"
             >
@@ -209,7 +307,7 @@ export default function Reports() {
             <p className="text-sm text-gray-500">Manage your stock and inventory metrics</p>
           </div>
           <div className="space-y-3">
-            <button 
+            <button
               onClick={() => setSelectedReport("stock-level")}
               className="w-full flex items-center justify-between text-left bg-gray-50 hover:bg-gray-100 px-4 py-3 rounded-lg transition-colors"
             >
@@ -223,7 +321,7 @@ export default function Reports() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <button 
+            <button
               onClick={() => setSelectedReport("inventory-turnover")}
               className="w-full flex items-center justify-between text-left bg-gray-50 hover:bg-gray-100 px-4 py-3 rounded-lg transition-colors"
             >
@@ -237,7 +335,7 @@ export default function Reports() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            <button 
+            <button
               onClick={() => setSelectedReport("low-stock-alert")}
               className="w-full flex items-center justify-between text-left bg-gray-50 hover:bg-gray-100 px-4 py-3 rounded-lg transition-colors"
             >
@@ -257,28 +355,36 @@ export default function Reports() {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <div className="mb-4">
             <h3 className="text-lg font-medium text-gray-800 mb-1">Quick Stats</h3>
-            <p className="text-sm text-gray-500">Recent business insights</p>
+            <p className="text-sm text-gray-500">Recent business insights for {selectedYear}</p>
           </div>
           <div className="space-y-4">
             {reportData && (
               <>
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Top Selling Products</h4>
-                  {reportData.topProducts.map((product, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{product.name}</span>
-                      <span className="font-medium">{product.sales} units</span>
-                    </div>
-                  ))}
+                  {reportData.topProducts.length > 0 ? (
+                    reportData.topProducts.map((product, index) => (
+                      <div key={index} className="flex justify-between text-sm py-1 border-b border-gray-100">
+                        <span className="text-gray-600">{product.name}</span>
+                        <span className="font-medium">{product.sales} units</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400">No sales data for {selectedYear}</p>
+                  )}
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Low Stock Items</h4>
-                  {reportData.lowStockItems.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span className="text-gray-600">{item.name}</span>
-                      <span className="font-medium text-red-600">{item.stock} left</span>
-                    </div>
-                  ))}
+                  {reportData.lowStockItems.length > 0 ? (
+                    reportData.lowStockItems.map((item, index) => (
+                      <div key={index} className="flex justify-between text-sm py-1 border-b border-gray-100">
+                        <span className="text-gray-600">{item.name}</span>
+                        <span className="font-medium text-red-600">{item.stock} left</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400">No low stock items for {selectedYear}</p>
+                  )}
                 </div>
               </>
             )}
@@ -295,7 +401,7 @@ export default function Reports() {
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
-            <select 
+            <select
               value={selectedReport}
               onChange={(e) => setSelectedReport(e.target.value)}
               className="w-full border border-gray-300 rounded-md p-2 text-sm"
@@ -309,20 +415,13 @@ export default function Reports() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-            <select 
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="w-full border border-gray-300 rounded-md p-2 text-sm"
-            >
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="last7days">Last 7 Days</option>
-              <option value="last30days">Last 30 Days</option>
-              <option value="thisMonth">This Month</option>
-              <option value="lastMonth">Last Month</option>
-              <option value="custom">Custom Range</option>
-            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+            <input
+              type="text"
+              value={selectedYear}
+              readOnly
+              className="w-full border border-gray-300 rounded-md p-2 text-sm bg-gray-50"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
@@ -342,14 +441,14 @@ export default function Reports() {
           </div>
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
-            <textarea 
-              className="w-full border border-gray-300 rounded-md p-2 text-sm" 
-              rows={3} 
+            <textarea
+              className="w-full border border-gray-300 rounded-md p-2 text-sm"
+              rows={3}
               placeholder="Any specific requirements or filters for the report..."
             ></textarea>
           </div>
           <div className="md:col-span-2 flex justify-end">
-            <button 
+            <button
               onClick={generateReport}
               disabled={!selectedReport || isGenerating}
               className="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-2 rounded text-sm transition-colors flex items-center"
