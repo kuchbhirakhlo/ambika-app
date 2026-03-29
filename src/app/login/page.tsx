@@ -1,9 +1,10 @@
-"use client"
-import { useState } from "react";
+"use client";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+const STORAGE_KEY = "dashboardSelectedYear";
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -12,6 +13,34 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Year selection state
+  const currentYear = new Date().getFullYear();
+  const years = useMemo(() => {
+    const start = Math.max(2000, currentYear - 20);
+    const end = currentYear + 1;
+    const arr: string[] = [];
+    for (let y = start; y <= end; y++) arr.push(String(y));
+    return arr;
+  }, [currentYear]);
+
+  const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved && /^\d{4}$/.test(saved)) {
+      setSelectedYear(saved);
+    } else {
+      sessionStorage.setItem(STORAGE_KEY, String(currentYear));
+    }
+  }, [currentYear]);
+
+  const handleYearChange = (year: string) => {
+    setSelectedYear(year);
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(STORAGE_KEY, year);
+    }
+  };
 
   // Check if the app can be installed (PWA)
 
@@ -91,6 +120,25 @@ export default function Login() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Year Selector - visible on mobile */}
+          <div className="sm:hidden">
+            <label htmlFor="year-mobile" className="block text-sm font-medium text-[#34495e] mb-1">
+              Select Year
+            </label>
+            <select
+              id="year-mobile"
+              value={selectedYear}
+              onChange={(e) => handleYearChange(e.target.value)}
+              className="w-full px-3 py-2 border border-[#34495e]/20 rounded-md focus:outline-none focus:ring-2 text-black focus:ring-[#34495e]"
+            >
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-[#34495e] mb-1">
               Username
@@ -130,7 +178,26 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-[#34495e]/20">
+        {/* Year Selector - visible on desktop */}
+        <div className="hidden sm:flex items-center justify-center mt-4 pt-4 border-t border-[#34495e]/20">
+          <label htmlFor="year-desktop" className="text-sm font-medium text-[#34495e] mr-2">
+            Select Year:
+          </label>
+          <select
+            id="year-desktop"
+            value={selectedYear}
+            onChange={(e) => handleYearChange(e.target.value)}
+            className="px-3 py-1 border border-[#34495e]/20 rounded-md focus:outline-none focus:ring-2 text-black focus:ring-[#34495e] text-sm"
+          >
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-[#34495e]/20">
           <p className="text-xs text-center text-[#34495e]/60">
             © {new Date().getFullYear()} Ambika Empire. All rights reserved.
           </p>
@@ -138,4 +205,4 @@ export default function Login() {
       </div>
     </div>
   );
-} 
+}

@@ -16,10 +16,14 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
   
   const [formData, setFormData] = useState({
     name: "",
+    contact: "",
+    email: "",
     phone: "",
+    category: "",
+    status: "Active",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -47,7 +51,11 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
       // Reset form
       setFormData({
         name: "",
+        contact: "",
+        email: "",
         phone: "",
+        category: "",
+        status: "Active",
       });
       
       // Notify success and close modal
@@ -65,7 +73,7 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full">
+      <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Add New Supplier</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -97,7 +105,37 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
             />
           </div>
           
-          <div className="mb-6">
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="contact">
+              Contact Person*
+            </label>
+            <input
+              type="text"
+              id="contact"
+              name="contact"
+              value={formData.contact}
+              onChange={handleChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+              Email*
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phone">
               Phone*
             </label>
@@ -110,6 +148,38 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="category">
+              Category*
+            </label>
+            <input
+              type="text"
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              placeholder="e.g., Raw Materials, Electronics, etc."
+              required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="status">
+              Status
+            </label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            >
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
           </div>
           
           <div className="flex items-center justify-end">
