@@ -89,21 +89,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
               <p className="text-xs text-[#34495e]/80">{user.role}</p>
             </div>
 
-            <div className="hidden sm:flex items-center gap-3 mr-4">
-              <div className="text-xs text-white/80 whitespace-nowrap">Year</div>
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="bg-white text-[#34495e] border border-white/50 rounded px-2 py-1 text-sm"
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <button
               onClick={handleLogout}
               className="bg-white text-[#34495e] hover:bg-white py-1 px-3 rounded text-sm transition-colors"
@@ -193,20 +178,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-2">
           <p className="text-sm text-gray-800 font-medium">Welcome, {user.name || user.username}</p>
           <p className="text-xs text-gray-600">{user.role}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <div className="text-xs text-gray-600 whitespace-nowrap">Year</div>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm"
-            >
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
       </div>
 
