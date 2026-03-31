@@ -234,6 +234,7 @@ export default function EmployeesPage() {
                 </div>
             ) : filteredEmployees.length > 0 ? (
                 <div className="bg-white rounded-lg shadow overflow-hidden">
+                    {/* Desktop Table View */}
                     <div className="hidden md:block">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
@@ -263,6 +264,28 @@ export default function EmployeesPage() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    {/* Mobile Card View */}
+                    <div className="md:hidden">
+                        {filteredEmployees.map((employee, index) => (
+                            <div key={employee._id} className={`p-4 border-b ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900">{employee.name || 'N/A'}</p>
+                                        <p className="text-xs text-gray-500">@{employee.username}</p>
+                                    </div>
+                                    <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded">{employee.employeeId}</span>
+                                </div>
+                                <div className="text-xs text-gray-500 mb-2">
+                                    {employee.phone || 'No phone'}
+                                </div>
+                                <div className="flex space-x-2">
+                                    <button onClick={() => handleEdit(employee)} className="text-xs text-green-600 hover:text-green-900">Edit</button>
+                                    <button onClick={() => handleLogout(employee._id, employee.name || employee.username)} className="text-xs text-orange-600 hover:text-orange-900">Logout</button>
+                                    <button onClick={() => handleDelete(employee._id, employee.name || employee.username)} className="text-xs text-red-600 hover:text-red-900">Delete</button>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                     <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
                         <div className="text-sm text-gray-700">Showing 1 to {filteredEmployees.length} of {filteredEmployees.length} results</div>
