@@ -215,7 +215,7 @@ export default function EmployeesPage() {
                         placeholder="Search employees..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border border-gray-300 rounded-md px-4 py-2 w-64"
+                        className="border border-gray-300 rounded-md px-4 py-2 w-64 text-black"
                     />
                 </div>
             </div>
@@ -282,19 +282,19 @@ export default function EmployeesPage() {
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Name</label>
-                                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="shadow border rounded w-full py-2 px-3" />
+                                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="shadow border rounded w-full py-2 px-3 text-black" />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Username *</label>
-                                <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="shadow border rounded w-full py-2 px-3" required />
+                                <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="shadow border rounded w-full py-2 px-3 text-black" required />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Phone</label>
-                                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="shadow border rounded w-full py-2 px-3" />
+                                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="shadow border rounded w-full py-2 px-3 text-black" />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Password *</label>
-                                <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="shadow border rounded w-full py-2 px-3" required />
+                                <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="shadow border rounded w-full py-2 px-3 text-black" required />
                             </div>
                             <div className="flex justify-end space-x-2">
                                 <button type="button" onClick={() => { setIsAddModalOpen(false); resetForm(); }} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
@@ -313,19 +313,19 @@ export default function EmployeesPage() {
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Name</label>
-                                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="shadow border rounded w-full py-2 px-3" />
+                                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="shadow border rounded w-full py-2 px-3 text-black" />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Username *</label>
-                                <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="shadow border rounded w-full py-2 px-3" required />
+                                <input type="text" value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} className="shadow border rounded w-full py-2 px-3 text-black" required />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">Phone</label>
-                                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="shadow border rounded w-full py-2 px-3" />
+                                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="shadow border rounded w-full py-2 px-3 text-black" />
                             </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2">New Password (leave blank)</label>
-                                <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="shadow border rounded w-full py-2 px-3" />
+                                <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="shadow border rounded w-full py-2 px-3 text-black" />
                             </div>
                             <div className="flex justify-end space-x-2">
                                 <button type="button" onClick={() => { setIsEditModalOpen(false); resetForm(); }} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>

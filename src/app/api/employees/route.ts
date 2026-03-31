@@ -42,9 +42,26 @@ export async function POST(request: NextRequest) {
         console.log('Creating employee with data:', { ...data, password: '***' });
 
         // Ensure role is set to 'employee'
+        // Generate employee ID in format EMP-XXX (max 6 chars)
+        let employeeId = data.employeeId;
+        
+        if (!employeeId) {
+            // Get the last employee to generate sequential ID
+            const lastEmployee = await Employee.findOne({}).sort({ employeeId: -1 });
+            let nextNum = 1;
+            if (lastEmployee && lastEmployee.employeeId) {
+                const match = lastEmployee.employeeId.match(/EMP-(\d+)/);
+                if (match) {
+                    nextNum = parseInt(match[1], 10) + 1;
+                }
+            }
+            employeeId = `EMP-${nextNum.toString().padStart(3, '0')}`;
+        }
+
         const employeeData = {
             ...data,
-            role: 'employee'
+            role: 'employee',
+            employeeId
         };
 
         // Create a new employee with the data
