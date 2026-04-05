@@ -507,25 +507,36 @@ export default function SalesPage() {
     margin: 0;
   }
 
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
   body {
     font-family: Arial, sans-serif;
     margin: 0;
-    padding: 20px;
+    padding: 0;
     color: #000;
     background: white;
   }
 
- .bill-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 15px;
-  border: 2px solid #000;
+  .bill-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 10px;
+    border: 2px solid #000;
+    min-height: 95vh;
+    display: flex;
+    flex-direction: column;
+  }
 
-  /* IMPORTANT */
-  min-height: calc(280mm - 30px); /* Full A4 height minus margins */
-  display: flex;
-  flex-direction: column;
-}
+  .items-table {
+    flex: 1;
+  }
+
+  .summary-table {
+    margin-top: auto;
+  }
 
 
   .company-name {
@@ -656,6 +667,15 @@ export default function SalesPage() {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    .bill-container {
+      page-break-inside: avoid;
+    }
+    table {
+      page-break-inside: avoid;
+    }
+    tr {
+      page-break-inside: avoid;
+    }
   }
 </style>
 
@@ -674,7 +694,7 @@ export default function SalesPage() {
   </div>
 <div class="content-area">
 
-  <table>
+  <table class="items-table">
     <thead>
       <tr>
         <th>Sr</th>
