@@ -520,14 +520,20 @@ export default function SalesPage() {
     margin: 0 auto;
     padding: 5px;
     border: 2px solid #000;
+    position: relative;
+    min-height: calc(100vh - 40px);
   }
 
   .items-table {
-    min-height: 300px;
+    width: 100%;
   }
 
   .summary-table {
-    margin-top: 20px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    page-break-inside: avoid;
   }
 
 
