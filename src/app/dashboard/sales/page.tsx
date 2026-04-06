@@ -504,7 +504,14 @@ export default function SalesPage() {
            <style>
   @page {
     size: A4;
-    margin: 8mm;
+    margin: 5mm;
+  }
+
+  @media print {
+    @page {
+      size: A4;
+      margin: 5mm;
+    }
   }
 
   body {
@@ -516,12 +523,14 @@ export default function SalesPage() {
   }
 
   .bill-container {
-    max-width: 900px;
+    max-width: 100%;
+    width: 100%;
     margin: 0 auto;
-    padding: 5px;
+    padding: 3px;
     border: 2px solid #000;
     position: relative;
-    min-height: calc(100vh - 40px);
+    min-height: calc(100vh - 20px);
+    box-sizing: border-box;
   }
 
   .items-table {
@@ -538,27 +547,27 @@ export default function SalesPage() {
 
 
   .company-name {
-    font-size: 22px;
+    font-size: 16px;
     font-weight: bold;
   }
 
   .company-details {
-    font-size: 12px;
+    font-size: 10px;
   }
 
   .bill-title {
     text-align: center;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
-    margin: 10px 0;
+    margin: 8px 0;
     text-transform: uppercase;
   }
 
   .info-section {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
-    font-size: 11px;
+    margin-bottom: 8px;
+    font-size: 10px;
   }
 
   .info-block {
@@ -572,20 +581,20 @@ export default function SalesPage() {
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: 10px;
   }
 
   th, td {
     border: 1px solid #000;
-    padding: 4px;
-    font-size: 10px;
+    padding: 2px 3px;
+    font-size: 9px;
   }
 
   th {
     background: #f0f0f0;
     text-align: center;
-    font-size: 10px;
-    padding: 3px;
+    font-size: 9px;
+    padding: 2px;
   }
 
   td {
@@ -626,13 +635,12 @@ export default function SalesPage() {
 .summary-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 15px;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .summary-table td {
   border: 1px solid #000;
-  padding: 5px;
+  padding: 3px;
 }
 
 .summary-label {
@@ -668,6 +676,7 @@ export default function SalesPage() {
     .bill-container {
       page-break-inside: avoid;
       page-break-after: avoid;
+      page-break-before: avoid;
     }
     .items-table {
       page-break-inside: avoid;
@@ -676,8 +685,10 @@ export default function SalesPage() {
       page-break-before: avoid;
       page-break-inside: avoid;
     }
-    table, tr, td, th {
-      page-break-inside: avoid;
+    table, thead, tbody, tr, td, th {
+      page-break-inside: avoid !important;
+      page-break-after: avoid !important;
+      page-break-before: avoid !important;
     }
   }
 </style>
