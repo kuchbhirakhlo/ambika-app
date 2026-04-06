@@ -504,12 +504,7 @@ export default function SalesPage() {
            <style>
   @page {
     size: A4;
-    margin: 0;
-  }
-
-  @page {
-    size: A4;
-    margin: 10mm;
+    margin: 8mm;
   }
 
   body {
@@ -523,19 +518,16 @@ export default function SalesPage() {
   .bill-container {
     max-width: 900px;
     margin: 0 auto;
-    padding: 10px;
+    padding: 5px;
     border: 2px solid #000;
-    min-height: 95vh;
-    display: flex;
-    flex-direction: column;
   }
 
   .items-table {
-    flex: 1;
+    min-height: 300px;
   }
 
   .summary-table {
-    margin-top: auto;
+    margin-top: 20px;
   }
 
 
@@ -550,17 +542,17 @@ export default function SalesPage() {
 
   .bill-title {
     text-align: center;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: bold;
-    margin: 15px 0;
+    margin: 10px 0;
     text-transform: uppercase;
   }
 
   .info-section {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 15px;
-    font-size: 13px;
+    margin-bottom: 10px;
+    font-size: 11px;
   }
 
   .info-block {
@@ -579,12 +571,15 @@ export default function SalesPage() {
 
   th, td {
     border: 1px solid #000;
-    padding: 6px;
+    padding: 4px;
+    font-size: 10px;
   }
 
   th {
     background: #f0f0f0;
     text-align: center;
+    font-size: 10px;
+    padding: 3px;
   }
 
   td {
@@ -626,12 +621,12 @@ export default function SalesPage() {
   width: 100%;
   border-collapse: collapse;
   margin-top: 15px;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 .summary-table td {
   border: 1px solid #000;
-  padding: 8px;
+  padding: 5px;
 }
 
 .summary-label {
@@ -652,9 +647,6 @@ export default function SalesPage() {
   text-align: right;
   font-weight: bold;
 }
-.content-area {
-  flex: 1; /* This pushes the summary to the bottom */
-}
 
   .footer {
     margin-top: 20px;
@@ -669,11 +661,16 @@ export default function SalesPage() {
     }
     .bill-container {
       page-break-inside: avoid;
+      page-break-after: avoid;
     }
-    table {
+    .items-table {
       page-break-inside: avoid;
     }
-    tr {
+    .summary-table {
+      page-break-before: avoid;
+      page-break-inside: avoid;
+    }
+    table, tr, td, th {
       page-break-inside: avoid;
     }
   }
@@ -692,7 +689,6 @@ export default function SalesPage() {
       Date: ${format(new Date(estimate.date), "dd/MM/yyyy")}
     </div>
   </div>
-<div class="content-area">
 
   <table class="items-table">
     <thead>
@@ -722,7 +718,6 @@ export default function SalesPage() {
       `).join('')}
     </tbody>
   </table>
-  </div>
 
   <table class="summary-table">
   <tr>
