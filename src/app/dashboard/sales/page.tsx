@@ -504,14 +504,7 @@ export default function SalesPage() {
            <style>
   @page {
     size: A4;
-    margin: 5mm;
-  }
-
-  @media print {
-    @page {
-      size: A4;
-      margin: 5mm;
-    }
+    margin: 0;
   }
 
   body {
@@ -526,48 +519,43 @@ export default function SalesPage() {
     max-width: 100%;
     width: 100%;
     margin: 0 auto;
-    padding: 3px;
-    border: 2px solid #000;
-    position: relative;
-    min-height: calc(100vh - 20px);
+    padding: 10px 15px;
+    border: 1px solid #000;
     box-sizing: border-box;
   }
 
   .items-table {
     width: 100%;
+    margin-bottom: 500px;
   }
 
   .summary-table {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    page-break-inside: avoid;
+    width: 100%;
   }
 
 
   .company-name {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
   }
 
   .company-details {
-    font-size: 10px;
+    font-size: 9px;
   }
 
   .bill-title {
     text-align: center;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: bold;
-    margin: 8px 0;
+    margin: 5px 0;
     text-transform: uppercase;
   }
 
   .info-section {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 10px;
+    margin-bottom: 5px;
+    font-size: 9px;
   }
 
   .info-block {
@@ -581,20 +569,20 @@ export default function SalesPage() {
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 10px;
+    font-size: 8px;
   }
 
   th, td {
     border: 1px solid #000;
-    padding: 2px 3px;
-    font-size: 9px;
+    padding: 1px 2px;
+    font-size: 8px;
   }
 
   th {
     background: #f0f0f0;
     text-align: center;
-    font-size: 9px;
-    padding: 2px;
+    font-size: 8px;
+    padding: 1px;
   }
 
   td {
@@ -635,12 +623,12 @@ export default function SalesPage() {
 .summary-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10px;
+  font-size: 8px;
 }
 
 .summary-table td {
   border: 1px solid #000;
-  padding: 3px;
+  padding: 2px;
 }
 
 .summary-label {
@@ -673,22 +661,25 @@ export default function SalesPage() {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    @page {
+      size: A4;
+      margin: 5mm;
+    }
+    html, body {
+      height: auto;
+      overflow: visible;
+      margin: 0;
+      padding: 0;
+    }
     .bill-container {
-      page-break-inside: avoid;
-      page-break-after: avoid;
-      page-break-before: avoid;
-    }
-    .items-table {
+      width: 100%;
       page-break-inside: avoid;
     }
-    .summary-table {
-      page-break-before: avoid;
+    .items-table, .summary-table {
       page-break-inside: avoid;
     }
-    table, thead, tbody, tr, td, th {
-      page-break-inside: avoid !important;
-      page-break-after: avoid !important;
-      page-break-before: avoid !important;
+    table, tr, td, th {
+      page-break-inside: avoid;
     }
   }
 </style>
@@ -782,7 +773,23 @@ export default function SalesPage() {
 
 
 <script>
-  window.onload = () => window.print();
+  window.onload = function() {
+    setTimeout(function() {
+      const container = document.querySelector('.bill-container');
+      const pageHeight = window.innerHeight;
+      const contentHeight = container.offsetHeight;
+      
+      if (contentHeight > pageHeight) {
+        const scale = (pageHeight - 20) / contentHeight;
+        container.style.transform = 'scale(' + scale + ')';
+        container.style.transformOrigin = 'top left';
+        container.style.width = (100 / scale) + '%';
+        container.style.height = 'auto';
+      }
+      
+      window.print();
+    }, 300);
+  };
 </script>
 </body>
 
