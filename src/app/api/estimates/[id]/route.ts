@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Estimate from '@/models/estimate';
 import Order from '@/models/order';
+import { broadcastChange } from '@/lib/broadcast-sync';
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -102,6 +103,9 @@ export async function PUT(
       );
     }
     
+    // Broadcast the change to all connected clients
+    broadcastChange('estimates', 'update', updatedEstimate._id.toString(), updatedEstimate.toObject());
+    
     return NextResponse.json(
       { message: 'Estimate updated successfully', estimate: updatedEstimate },
       { status: 200 }
@@ -159,6 +163,9 @@ export async function DELETE(
         status: 'Generate Estimate'
       }
     );
+    
+    // Broadcast the change to all connected clients
+    broadcastChange('estimates', 'delete', deletedEstimate._id.toString(), null);
     
     return NextResponse.json(
       { message: 'Estimate deleted successfully' },

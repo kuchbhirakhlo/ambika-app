@@ -13,6 +13,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "allowImportingTsExtensions": true,
     "plugins": [
       {
         "name": "next"
@@ -22,6 +23,11 @@
       "@/*": ["./src/*"]
     },
     "typeRoots": ["./node_modules/@types", "./types"]
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "moduleResolution": "node"
+    }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "types/**/*.d.ts"],
   "exclude": ["node_modules"]

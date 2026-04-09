@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Product from '@/models/product';
+import { broadcastChange } from '@/lib/broadcast-sync';
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
     
     // Create a new product with the data
     const newProduct = await Product.create(data);
+    
+    // Broadcast the change to all connected clients
+    broadcastChange('products', 'insert', newProduct._id.toString(), newProduct.toObject());
     
     return NextResponse.json(
       { message: 'Product created successfully', product: newProduct },

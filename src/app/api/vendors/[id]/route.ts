@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { broadcastChange } from "@/lib/broadcast-sync";
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +55,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Get updated vendor
     const updatedVendor = await db.collection("vendors").findOne({ _id: new ObjectId(id) });
     
+    // Broadcast the change to all connected clients
+    broadcastChange('vendors', 'update', id, updatedVendor);
+    
     return NextResponse.json(updatedVendor);
   } catch (error) {
     console.error("Error updating vendor:", error);
@@ -72,6 +76,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
     }
+    
+    // Broadcast the change to all connected clients
+    broadcastChange('vendors', 'delete', id, null);
     
     return new NextResponse(null, { status: 204 });
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Order from '@/models/order';
+import { broadcastChange } from '@/lib/broadcast-sync';
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -87,6 +88,9 @@ export async function POST(request: NextRequest) {
 
     // Create a new order with the data
     const newOrder = await Order.create(data);
+    
+    // Broadcast the change to all connected clients
+    broadcastChange('orders', 'insert', newOrder._id.toString(), newOrder.toObject());
     
     return NextResponse.json(
       { message: 'Order created successfully', order: newOrder },

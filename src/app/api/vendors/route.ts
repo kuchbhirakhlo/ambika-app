@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { broadcastChange } from "@/lib/broadcast-sync";
 
 // GET /api/vendors - Get all vendors
 export async function GET(request: NextRequest) {
@@ -37,6 +38,9 @@ export async function POST(request: NextRequest) {
       ...vendorData,
       id: result.insertedId.toString()
     };
+    
+    // Broadcast the change to all connected clients
+    broadcastChange('vendors', 'insert', result.insertedId.toString(), newVendor);
     
     return NextResponse.json(newVendor, { status: 201 });
   } catch (error) {
