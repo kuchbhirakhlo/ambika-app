@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { generatePDF } from "@/utils/pdf-fix";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface Order {
   id: number;
@@ -42,6 +43,14 @@ export default function Dashboard() {
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false);
+
+  // Enable real-time sync for dashboard data
+  useRealtimeSync({
+    collections: ['orders', 'estimates', 'inventory', 'products', 'customers'],
+    onDataChange: () => {
+      loadDashboardData();
+    },
+  });
 
   useEffect(() => {
     loadDashboardData();

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useYear } from "@/contexts/YearContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface ReportData {
   totalSales: number;
@@ -19,6 +20,14 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Enable real-time sync for reports data
+  useRealtimeSync({
+    collections: ['orders', 'estimates', 'products', 'inventory', 'customers'],
+    onDataChange: () => {
+      loadReportData();
+    },
+  });
 
   useEffect(() => {
     loadReportData();

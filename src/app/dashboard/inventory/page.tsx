@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useYear } from "@/contexts/YearContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface Product {
   _id: string;
@@ -46,6 +47,17 @@ export default function Inventory() {
   const router = useRouter();
   const [accessDenied, setAccessDenied] = useState(false);
   const { selectedYear } = useYear();
+
+  // Enable real-time sync for inventory
+  useRealtimeSync({
+    collections: ['inventory'],
+    onDataChange: (change) => {
+      if (change.collectionName === 'inventory') {
+        console.log('Inventory data changed:', change.operationType, change.documentId);
+        loadInventory();
+      }
+    },
+  });
 
   useEffect(() => {
     // Check if user has access - only admin and employee can access inventory

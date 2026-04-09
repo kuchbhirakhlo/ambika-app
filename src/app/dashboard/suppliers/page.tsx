@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { generatePDF } from "@/utils/pdf-fix";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import AddSupplierModal from "@/app/components/suppliers/AddSupplierModal";
 import ViewSupplierModal from "@/app/components/suppliers/ViewSupplierModal";
 import EditSupplierModal from "@/app/components/suppliers/EditSupplierModal";
@@ -33,6 +34,18 @@ export default function SuppliersPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [selectedSupplierName, setSelectedSupplierName] = useState("");
+
+  // Enable real-time sync for suppliers
+  useRealtimeSync({
+    collections: ['suppliers'],
+    onDataChange: (change) => {
+      if (change.collectionName === 'suppliers') {
+        console.log('Supplier data changed:', change.operationType, change.documentId);
+        // Refresh suppliers when changes occur
+        fetchSuppliers();
+      }
+    },
+  });
 
   // Fetch suppliers on load and when updated
   useEffect(() => {

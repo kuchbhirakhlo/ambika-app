@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { useYear } from "@/contexts/YearContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface Order {
   _id: string;
@@ -117,6 +118,20 @@ export default function SalesPage() {
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [isGeneratingEstimate, setIsGeneratingEstimate] = useState(false);
   const [estimateOrderBalance, setEstimateOrderBalance] = useState<number>(0);
+
+  // Enable real-time sync for orders and estimates
+  useRealtimeSync({
+    collections: ['orders', 'estimates'],
+    onDataChange: (change) => {
+      if (change.collectionName === 'orders') {
+        console.log('Order data changed:', change.operationType, change.documentId);
+        loadOrders();
+      } else if (change.collectionName === 'estimates') {
+        console.log('Estimate data changed:', change.operationType, change.documentId);
+        loadEstimates();
+      }
+    },
+  });
 
   useEffect(() => {
     if (activeTab === "orders") {

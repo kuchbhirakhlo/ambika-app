@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { generatePDF } from "@/utils/pdf-fix";
 import { useYear } from "@/contexts/YearContext";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface Product {
   _id: string;
@@ -48,6 +49,17 @@ export default function Products() {
   const router = useRouter();
   const [accessDenied, setAccessDenied] = useState(false);
   const { selectedYear } = useYear();
+
+  // Enable real-time sync for products
+  useRealtimeSync({
+    collections: ['products'],
+    onDataChange: (change) => {
+      if (change.collectionName === 'products') {
+        console.log('Product data changed:', change.operationType, change.documentId);
+        loadProducts();
+      }
+    },
+  });
 
   useEffect(() => {
     // Check if user has access - only admin and employee can access products

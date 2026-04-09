@@ -129,6 +129,9 @@ export async function POST(request: NextRequest) {
       }
     );
     
+    // Broadcast the change to all connected clients
+    broadcastChange('estimates', 'insert', newEstimate._id.toString(), newEstimate.toObject());
+    
     return NextResponse.json(
       { message: 'Estimate created successfully', estimate: newEstimate },
       { status: 201 }

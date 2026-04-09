@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { generatePDF } from "@/utils/pdf-fix";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import AddAgentModal from "@/app/components/agents/AddAgentModal";
 import ViewAgentModal from "@/app/components/agents/ViewAgentModal";
 import EditAgentModal from "@/app/components/agents/EditAgentModal";
@@ -31,6 +32,17 @@ export default function AgentsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [selectedAgentName, setSelectedAgentName] = useState("");
+
+  // Enable real-time sync for agents
+  useRealtimeSync({
+    collections: ['agents'],
+    onDataChange: (change) => {
+      if (change.collectionName === 'agents') {
+        console.log('Agent data changed:', change.operationType, change.documentId);
+        fetchAgents();
+      }
+    },
+  });
 
   // Fetch agents on load and when updated
   useEffect(() => {

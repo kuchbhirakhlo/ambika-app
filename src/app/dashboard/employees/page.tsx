@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface Employee {
     _id: string;
@@ -33,6 +34,17 @@ export default function EmployeesPage() {
         username: "",
         phone: "",
         password: "",
+    });
+
+    // Enable real-time sync for employees
+    useRealtimeSync({
+        collections: ['employees'],
+        onDataChange: (change) => {
+            if (change.collectionName === 'employees') {
+                console.log('Employee data changed:', change.operationType, change.documentId);
+                fetchEmployees();
+            }
+        },
     });
 
     useEffect(() => {

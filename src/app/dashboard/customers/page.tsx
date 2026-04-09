@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { generatePDF } from "@/utils/pdf-fix";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface Customer {
   _id: string;
@@ -39,7 +40,6 @@ export default function Customers() {
     customer_ref_id: "",
     agent: "",
     address: "",
-    email: "",
   });
   const [currentSortField, setCurrentSortField] = useState<string | null>("name");
   const [currentSortDirection, setCurrentSortDirection] = useState<"asc" | "desc">("asc");
@@ -47,6 +47,18 @@ export default function Customers() {
   const [error, setError] = useState("");
   const router = useRouter();
   const [accessDenied, setAccessDenied] = useState(false);
+
+  // Enable real-time sync for customers
+  useRealtimeSync({
+    collections: ['customers'],
+    onDataChange: (change) => {
+      if (change.collectionName === 'customers') {
+        console.log('Customer data changed:', change.operationType, change.documentId);
+        // Refresh customers when changes occur
+        loadCustomers();
+      }
+    },
+  });
 
   useEffect(() => {
     // Check if user has access - only admin and employee can access customers
@@ -168,7 +180,6 @@ export default function Customers() {
       customer_ref_id: "",
       agent: "",
       address: "",
-      email: "",
     });
     setIsModalOpen(true);
   };
@@ -182,7 +193,6 @@ export default function Customers() {
       customer_ref_id: customer.customer_ref_id,
       agent: customer.agent,
       address: customer.address,
-      email: customer.email || "",
     });
     setIsModalOpen(true);
   };
@@ -276,7 +286,6 @@ export default function Customers() {
           customer_ref_id: "",
           agent: "",
           address: "",
-          email: "",
         });
         
         // Show success message
@@ -577,17 +586,6 @@ export default function Customers() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email || ""}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter email address"
-                  />
-                </div>
-                <div>
                   <label className="block text-sm font-medium text-gray-700">Agent*</label>
                   <select
                     name="agent"
@@ -663,10 +661,6 @@ export default function Customers() {
               <div>
                 <p className="text-sm font-medium text-gray-500">Contact Number</p>
                 <p className="mt-1 text-sm text-gray-900">{selectedCustomer.contact}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Email</p>
-                <p className="mt-1 text-sm text-gray-900">{selectedCustomer.email || '-'}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">Agent</p>

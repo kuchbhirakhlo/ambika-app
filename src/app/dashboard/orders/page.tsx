@@ -1,4 +1,120 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+
+interface Order {
+  _id: string;
+  order_id: string;
+  customer_name: string;
+  customer_email?: string;
+  customer_phone?: string;
+  amount?: number;
+  total_amount?: number;
+  status: string;
+  createdAt?: string;
+  items?: Array<any>;
+}
+
 export default function Orders() {
+  const router = useRouter();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Enable real-time sync for orders
+  useRealtimeSync({
+    collections: ['orders'],
+    onDataChange: (change) => {
+      if (change.collectionName === 'orders') {
+        console.log('Order data changed:', change.operationType, change.documentId);
+        loadOrders();
+      }
+    },
+  });
+
+  useEffect(() => {
+    const userStr = sessionStorage.getItem("user");
+    if (!userStr) {
+      router.push("/login");
+      return;
+    }
+    loadOrders();
+  }, [router]);
+
+  useEffect(() => {
+    filterOrders();
+  }, [orders, searchTerm, statusFilter]);
+
+  const loadOrders = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/orders');
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setOrders(data.orders || []);
+      setError("");
+    } catch (error) {
+      console.error("Error loading orders:", error);
+      setError("Failed to load orders");
+      setOrders([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filterOrders = () => {
+    let filtered = orders;
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(order =>
+        order.order_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.customer_email && order.customer_email.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    setFilteredOrders(filtered);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Completed':
+        return 'bg-green-100 text-green-800';
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'Shipped':
+        return 'bg-purple-100 text-purple-800';
+      case 'Cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
   return (
     <>
       <div className="mb-6">
@@ -16,7 +132,7 @@ export default function Orders() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Total Orders</div>
-              <div className="text-2xl font-bold text-gray-800">42</div>
+              <div className="text-2xl font-bold text-gray-800">{orders.length}</div>
             </div>
           </div>
         </div>
@@ -30,7 +146,7 @@ export default function Orders() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Completed</div>
-              <div className="text-2xl font-bold text-gray-800">28</div>
+              <div className="text-2xl font-bold text-gray-800">{orders.filter(o => o.status === 'Completed').length}</div>
             </div>
           </div>
         </div>
@@ -44,7 +160,7 @@ export default function Orders() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Pending</div>
-              <div className="text-2xl font-bold text-gray-800">10</div>
+              <div className="text-2xl font-bold text-gray-800">{orders.filter(o => o.status === 'Pending').length}</div>
             </div>
           </div>
         </div>
@@ -58,7 +174,7 @@ export default function Orders() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Cancelled</div>
-              <div className="text-2xl font-bold text-gray-800">4</div>
+              <div className="text-2xl font-bold text-gray-800">{orders.filter(o => o.status === 'Cancelled').length}</div>
             </div>
           </div>
         </div>
@@ -67,35 +183,46 @@ export default function Orders() {
       <div className="bg-white rounded-lg shadow-md mb-6">
         <div className="p-6 flex justify-between items-center border-b border-gray-200">
           <h3 className="text-lg font-medium text-gray-800">Recent Orders</h3>
-          <button className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-colors flex items-center">
+          <button onClick={() => router.push('/dashboard/orders/new')} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm transition-colors flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
             Create New Order
           </button>
         </div>
-        <div className="p-6 flex justify-between items-center border-b border-gray-200">
+        <div className="p-6 flex gap-4 border-b border-gray-200">
           <div className="flex items-center">
             <span className="mr-2 text-gray-600">Status:</span>
-            <select className="border border-gray-300 rounded-md p-1 text-sm">
-              <option>All Status</option>
-              <option>Completed</option>
-              <option>Processing</option>
-              <option>Shipped</option>
-              <option>Cancelled</option>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="border border-gray-300 rounded-md p-2 text-sm"
+            >
+              <option value="all">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Processing">Processing</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
             </select>
           </div>
-          <div className="relative">
+          <div className="flex-1">
             <input
               type="text"
-              placeholder="Search orders..."
-              className="border border-gray-300 rounded-md p-1 pl-8 text-sm w-64"
+              placeholder="Search by Order ID, Customer, or Email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-300 rounded-md p-2 text-sm"
             />
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400 absolute left-2 top-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
           </div>
         </div>
+
+        {isLoading ? (
+          <div className="p-6 text-center text-gray-500">Loading orders...</div>
+        ) : error ? (
+          <div className="p-6 text-center text-red-600">{error}</div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="p-6 text-center text-gray-500">No orders found</div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -109,112 +236,38 @@ export default function Orders() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#ORD-2023-1042</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-8 w-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs">
-                      RS
+              {filteredOrders.map((order) => (
+                <tr key={order._id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0 h-8 w-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-xs">
+                        {order.customer_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{order.customer_name}</div>
+                        <div className="text-sm text-gray-500">{order.customer_email || 'N/A'}</div>
+                      </div>
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">Rahul Sharma</div>
-                      <div className="text-sm text-gray-500">rahul.s@example.com</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Aug 15, 2023</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹12,499</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-indigo-600 hover:text-indigo-900 mr-3">View</button>
-                  <button className="text-indigo-600 hover:text-indigo-900 mr-3">Invoice</button>
-                  <a href={`/dashboard/orders/ORD-2023-1042`} className="text-red-600 hover:text-red-900">Edit</a>
-                </td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#ORD-2023-1041</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-8 w-8 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center font-bold text-xs">
-                      PK
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">Priya Kumar</div>
-                      <div className="text-sm text-gray-500">priya.k@example.com</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Aug 14, 2023</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹7,200</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Shipped</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <a href="#" className="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
-                  <a href="#" className="text-indigo-600 hover:text-indigo-900">Invoice</a>
-                </td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#ORD-2023-1040</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-8 w-8 bg-green-100 text-green-700 rounded-full flex items-center justify-center font-bold text-xs">
-                      AJ
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">Amit Jain</div>
-                      <div className="text-sm text-gray-500">amit.j@example.com</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Aug 12, 2023</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹94,500</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Processing</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <a href="#" className="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
-                  <a href="#" className="text-indigo-600 hover:text-indigo-900">Invoice</a>
-                </td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#ORD-2023-1039</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-8 w-8 bg-red-100 text-red-700 rounded-full flex items-center justify-center font-bold text-xs">
-                      SM
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">Sunita Mehta</div>
-                      <div className="text-sm text-gray-500">sunita.m@example.com</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Aug 10, 2023</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹3,299</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Cancelled</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <a href="#" className="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
-                  <a href="#" className="text-indigo-600 hover:text-indigo-900">Invoice</a>
-                </td>
-              </tr>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(order.createdAt)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{order.total_amount || order.amount || '0'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button className="text-indigo-600 hover:text-indigo-900 mr-3">View</button>
+                    <button className="text-indigo-600 hover:text-indigo-900 mr-3">Invoice</button>
+                    <a href={`/dashboard/orders/${order._id}`} className="text-red-600 hover:text-red-900">Edit</a>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-between">
-          <div className="text-sm text-gray-600">Showing 4 of 42 orders</div>
-          <div className="flex">
-            <button className="px-3 py-1 bg-gray-100 text-gray-700 rounded-l-md">Previous</button>
-            <button className="px-3 py-1 bg-red-600 text-white">1</button>
-            <button className="px-3 py-1 bg-gray-100 text-gray-700">2</button>
-            <button className="px-3 py-1 bg-gray-100 text-gray-700">3</button>
-            <button className="px-3 py-1 bg-gray-100 text-gray-700 rounded-r-md">Next</button>
-          </div>
-        </div>
+        )}
       </div>
     </>
   );
