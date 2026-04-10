@@ -74,10 +74,10 @@ export async function PUT(
         { status: 404 }
       );
     }
-    
+
     // Broadcast the change to all connected clients
     broadcastChange('products', 'update', updatedProduct._id.toString(), updatedProduct.toObject());
-    
+
     return NextResponse.json(
       { message: 'Product updated successfully', product: updatedProduct },
       { status: 200 }
@@ -116,10 +116,10 @@ export async function DELETE(
         { status: 404 }
       );
     }
-    
+
     // Broadcast the change to all connected clients
-    broadcastChange('products', 'delete', id, null);
-    
+    broadcastChange('products', 'delete', id);
+
     return NextResponse.json(
       { message: 'Product deleted successfully' },
       { status: 200 }

@@ -1,24 +1,24 @@
 /**
  * Electron Desktop App - Real-time MongoDB Sync Service
- * 
+ *
  * Usage in your Electron app:
- * 
+ *
  * import { RealtimeSyncService } from './realtime-sync-service';
- * 
+ *
  * const syncService = new RealtimeSyncService();
- * 
+ *
  * // Connect and subscribe to collections
  * await syncService.connect('http://localhost:3000');
  * syncService.subscribe('products', (change) => {
  *   console.log('Product changed:', change);
  *   // Update your UI or local state
  * });
- * 
+ *
  * // Handle disconnection
  * await syncService.disconnect();
  */
 
-import { io, Socket } from 'socket.io-client';
+import io from 'socket.io-client';
 
 export interface DataChange {
   collectionName: string;
@@ -35,7 +35,7 @@ export interface DataChange {
 export type ChangeCallback = (change: DataChange) => void;
 
 export class RealtimeSyncService {
-  private socket: Socket | null = null;
+  private socket: any = null;
   private listeners: Map<string, Set<ChangeCallback>> = new Map();
   private globalListeners: Set<ChangeCallback> = new Set();
   private reconnectAttempts = 0;
@@ -194,7 +194,7 @@ export class RealtimeSyncService {
   /**
    * Get socket instance (for advanced usage)
    */
-  getSocket(): Socket | null {
+  getSocket(): any {
     return this.socket;
   }
 }

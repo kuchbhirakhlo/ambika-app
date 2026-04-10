@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import io, { Socket } from 'socket.io-client';
+import io from 'socket.io-client';
 
 export interface DataChange {
   collectionName: string;
@@ -29,7 +29,7 @@ export function useRealtimeSync(options: UseRealtimeSyncOptions = {}) {
     autoConnect = true,
   } = options;
 
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

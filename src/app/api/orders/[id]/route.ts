@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Order from '@/models/order';
-import { broadcastChange } from '@/lib/broadcast-sync';
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -112,7 +111,6 @@ export async function PUT(
     }
     
     // Broadcast the change to all connected clients
-    broadcastChange('orders', 'update', updatedOrder._id.toString(), updatedOrder.toObject());
     
     return NextResponse.json(
       { message: 'Order updated successfully', order: updatedOrder },
@@ -163,7 +161,6 @@ export async function DELETE(
     }
     
     // Broadcast the change to all connected clients
-    broadcastChange('orders', 'delete', deletedOrder._id.toString(), null);
     
     return NextResponse.json(
       { message: 'Order deleted successfully' },

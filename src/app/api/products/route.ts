@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
     
     // Create a new product with the data
     const newProduct = await Product.create(data);
-    
+
     // Broadcast the change to all connected clients
     broadcastChange('products', 'insert', newProduct._id.toString(), newProduct.toObject());
-    
+
     return NextResponse.json(
       { message: 'Product created successfully', product: newProduct },
       { status: 201 }

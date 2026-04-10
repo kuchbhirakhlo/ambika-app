@@ -88,10 +88,10 @@ export async function POST(request: NextRequest) {
 
     // Create a new order with the data
     const newOrder = await Order.create(data);
-    
+
     // Broadcast the change to all connected clients
     broadcastChange('orders', 'insert', newOrder._id.toString(), newOrder.toObject());
-    
+
     return NextResponse.json(
       { message: 'Order created successfully', order: newOrder },
       { status: 201 }

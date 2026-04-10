@@ -300,7 +300,7 @@ export default function ProductListPage() {
       {/* Status Footer */}
       <div className="mt-6 text-sm text-gray-600 text-center">
         Showing {products.length} product{products.length !== 1 ? 's' : ''} •{' '}
-        {isConnected ? 'Real-time sync is active' : 'Offline mode'}
+Direct database connection
       </div>
     </div>
   );

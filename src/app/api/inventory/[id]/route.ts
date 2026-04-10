@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
-import { broadcastChange } from "@/lib/broadcast-sync";
 
 export async function GET(
   request: NextRequest,
@@ -89,7 +88,6 @@ export async function PUT(
       .findOne({ _id: new ObjectId(id) });
     
     // Broadcast the change to all connected clients
-    broadcastChange('inventory', 'update', id, updatedItem);
 
     return NextResponse.json(updatedItem);
   } catch (error) {
@@ -127,7 +125,6 @@ export async function DELETE(
     }
     
     // Broadcast the change to all connected clients
-    broadcastChange('inventory', 'delete', id, null);
 
     return NextResponse.json({ success: true });
   } catch (error) {

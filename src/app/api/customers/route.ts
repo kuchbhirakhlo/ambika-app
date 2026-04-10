@@ -49,10 +49,10 @@ export async function POST(request: NextRequest) {
     
     // Create a new customer with the data
     const newCustomer = await Customer.create(data);
-    
+
     // Broadcast the change to all connected clients
     broadcastChange('customers', 'insert', newCustomer._id.toString(), newCustomer.toObject());
-    
+
     return NextResponse.json(
       { message: 'Customer created successfully', customer: newCustomer },
       { status: 201 }
