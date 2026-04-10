@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Agent from '@/models/agent';
+import { broadcastChange } from '@/lib/broadcast-sync';
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -40,8 +41,10 @@ export async function POST(request: NextRequest) {
     
     // Create a new agent with the data
     const newAgent = await Agent.create(data);
-    
-    
+
+    // Broadcast the change to all connected clients
+    broadcastChange('agents', 'insert', newAgent._id.toString(), newAgent.toObject());
+
     return NextResponse.json(
       { message: 'Agent created successfully', agent: newAgent },
       { status: 201 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
+import { broadcastChange } from '@/lib/broadcast-sync';
 
 // GET /api/inventory - Get all inventory items
 export async function GET(request: NextRequest) {
@@ -89,7 +90,12 @@ export async function POST(request: NextRequest) {
       newItem = { _id: result.insertedId, ...newInventoryItem };
       
     }
-    
+
+    if (newItem) {
+      // Broadcast the change to all connected clients
+      broadcastChange('inventory', 'insert', newItem._id.toString(), newItem);
+    }
+
     return NextResponse.json(newItem);
   } catch (error) {
     console.error("Error creating/updating inventory:", error);

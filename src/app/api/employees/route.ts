@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Employee from '@/models/employee';
+import { broadcastChange } from '@/lib/broadcast-sync';
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -74,7 +75,9 @@ export async function POST(request: NextRequest) {
             employeeId: newEmployee.employeeId,
             role: newEmployee.role
         });
-        
+
+        // Broadcast the change to all connected clients
+        broadcastChange('employees', 'insert', newEmployee._id.toString(), newEmployee.toObject());
 
         return NextResponse.json(
             { message: 'Employee created successfully', employee: newEmployee },

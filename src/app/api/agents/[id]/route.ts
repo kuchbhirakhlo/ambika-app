@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Agent from '@/models/agent';
+import { broadcastChange } from '@/lib/broadcast-sync';
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -30,7 +31,7 @@ export async function GET(
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json({ agent }, { status: 200 });
   } catch (error) {
     console.error('Error fetching agent:', error);
@@ -63,9 +64,10 @@ export async function PUT(
         { status: 404 }
       );
     }
-    
+
     // Broadcast the change to all connected clients
-    
+    broadcastChange('agents', 'update', updatedAgent._id.toString(), updatedAgent.toObject());
+
     return NextResponse.json(
       { message: 'Agent updated successfully', agent: updatedAgent },
       { status: 200 }
@@ -95,9 +97,10 @@ export async function DELETE(
         { status: 404 }
       );
     }
-    
+
     // Broadcast the change to all connected clients
-    
+    broadcastChange('agents', 'delete', params.id);
+
     return NextResponse.json(
       { message: 'Agent deleted successfully' },
       { status: 200 }

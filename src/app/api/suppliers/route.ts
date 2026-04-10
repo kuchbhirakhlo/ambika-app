@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import Supplier from '@/models/supplier';
 import mongoose from 'mongoose';
+import { broadcastChange } from '@/lib/broadcast-sync';
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -41,8 +42,10 @@ export async function POST(request: NextRequest) {
     
     // Create a new supplier with the data
     const newSupplier = await Supplier.create(data);
-    
-    
+
+    // Broadcast the change to all connected clients
+    broadcastChange('suppliers', 'insert', newSupplier._id.toString(), newSupplier.toObject());
+
     return NextResponse.json(
       { message: 'Supplier created successfully', supplier: newSupplier },
       { status: 201 }
