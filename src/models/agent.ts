@@ -19,6 +19,7 @@ const agentSchema = new Schema<IAgent>(
     contact: {
       type: String,
       trim: true,
+      required: false,
     },
     email: {
       type: String,

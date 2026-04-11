@@ -15,33 +15,36 @@ const supplierSchema = new Schema<ISupplier>(
   {
     name: {
       type: String,
-      required: [true, 'Supplier name is required'],
       trim: true,
+      required: false,
     },
     contact: {
       type: String,
-      required: [true, 'Contact person name is required'],
       trim: true,
+      required: false,
     },
     email: {
       type: String,
       trim: true,
       lowercase: true,
       match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address'],
+      required: false,
     },
     phone: {
       type: String,
       trim: true,
+      required: false,
     },
     category: {
       type: String,
-      required: [true, 'Category is required'],
       trim: true,
+      required: false,
     },
     status: {
       type: String,
       enum: ['Active', 'Inactive'],
       default: 'Active',
+      required: false,
     },
   },
   {

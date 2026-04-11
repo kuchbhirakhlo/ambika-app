@@ -176,35 +176,28 @@ export default function Reports() {
       };
     });
 
-    // Add purchased quantities (from orders, assuming purchases are incoming)
-    orders.forEach(order => {
-      if (order.items) {
-        order.items.forEach((item: any) => {
-          const code = item.product_code;
-          if (productData[code]) {
-            productData[code].purchasedQty += item.quantity || 0;
-          }
-        });
-      }
-    });
-
-    // Add sold quantities (from estimates, assuming estimates represent sales)
-    estimates.forEach(estimate => {
-      if ((estimate.status === 'Pending' || estimate.status === 'Completed') && estimate.items) {
-        estimate.items.forEach((item: any) => {
-          const code = item.product_code;
-          if (productData[code]) {
-            productData[code].soldQty += item.quantity || 0;
-          }
-        });
-      }
-    });
-
-    // Add in stock quantities
+    // Add purchased quantities (from inventory - all time purchased, which is current stock + sold quantities)
+    // Purchased = In Stock + Sold (since inventory decreases when sold)
     inventory.forEach(inv => {
       const code = inv.product_code;
       if (productData[code]) {
-        productData[code].inStockQty += inv.quantity || 0;
+        // Calculate total purchased by adding current stock to sold quantities
+        let totalSold = 0;
+
+        // Get sold quantities from orders (completed orders represent actual sales)
+        orders.forEach(order => {
+          if (order.items) {
+            order.items.forEach((item: any) => {
+              if (item.product_code === code) {
+                totalSold += item.quantity || 0;
+              }
+            });
+          }
+        });
+
+        productData[code].inStockQty = inv.quantity || 0;
+        productData[code].soldQty = totalSold;
+        productData[code].purchasedQty = productData[code].inStockQty + productData[code].soldQty;
       }
     });
 

@@ -47,7 +47,8 @@ export default function Dashboard() {
   // Enable real-time sync for dashboard data
   useRealtimeSync({
     collections: ['orders', 'estimates', 'inventory', 'products', 'customers'],
-    onDataChange: () => {
+    onDataChange: (change) => {
+      console.log('Dashboard data change detected:', change.collectionName, change.operationType);
       loadDashboardData();
     },
   });
@@ -60,32 +61,39 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      // Load today's orders
+      // Load today's orders from API
       const today = new Date().toISOString().split('T')[0];
-      const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-      const filteredOrders = allOrders.filter((order: Order) => {
-        const orderDate = order.date ? 
-          (order.date.includes('T') ? order.date.split('T')[0] : order.date) : '';
-        return orderDate === today;
-      });
-      setTodayOrders(filteredOrders);
 
-      // Load pending estimates
-      const allEstimates = JSON.parse(localStorage.getItem('estimates') || '[]');
-      const filteredEstimates = allEstimates.filter((estimate: Estimate) => 
-        estimate.status && estimate.status.toLowerCase() === 'pending'
-      );
-      setPendingEstimates(filteredEstimates);
-
-      // Load inventory
-      let inventoryData = [];
-      try {
-        inventoryData = JSON.parse(localStorage.getItem('inventory') || '[]');
-      } catch (error) {
-        console.error('Error loading inventory:', error);
-        inventoryData = [];
+      // Fetch orders from API
+      const ordersResponse = await fetch('/api/orders');
+      if (ordersResponse.ok) {
+        const ordersData = await ordersResponse.json();
+        const allOrders = ordersData.orders || [];
+        const filteredOrders = allOrders.filter((order: Order) => {
+          const orderDate = order.date ?
+            (typeof order.date === 'string' && order.date.includes('T') ? order.date.split('T')[0] : order.date) : '';
+          return orderDate === today;
+        });
+        setTodayOrders(filteredOrders);
       }
-      setInventory(inventoryData);
+
+      // Fetch estimates from API
+      const estimatesResponse = await fetch('/api/estimates');
+      if (estimatesResponse.ok) {
+        const estimatesData = await estimatesResponse.json();
+        const allEstimates = estimatesData.estimates || [];
+        const filteredEstimates = allEstimates.filter((estimate: Estimate) =>
+          estimate.status && estimate.status.toLowerCase() === 'pending'
+        );
+        setPendingEstimates(filteredEstimates);
+      }
+
+      // Load inventory from API
+      const inventoryResponse = await fetch('/api/inventory');
+      if (inventoryResponse.ok) {
+        const inventoryData = await inventoryResponse.json();
+        setInventory(inventoryData.inventory || []);
+      }
     } catch (error) {
       console.error('Error in loadDashboardData:', error);
     }

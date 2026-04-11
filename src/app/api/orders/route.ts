@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Order from '@/models/order';
+import Inventory from '@/models/inventory';
+import Product from '@/models/product';
 import { broadcastChange } from '@/lib/broadcast-sync';
 
 // Connect to MongoDB
@@ -86,8 +88,49 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Check inventory availability for each item
+    if (Array.isArray(data.items)) {
+      for (const item of data.items) {
+        if (!item.product_code || !item.quantity || item.quantity <= 0) {
+          return NextResponse.json({
+            error: `Invalid quantity for product ${item.product_code || 'unknown'}. Quantity must be greater than 0.`
+          }, { status: 400 });
+        }
+
+        // Find the product to get its ObjectId
+        const product = await Product.findOne({ code: item.product_code });
+        if (!product) {
+          return NextResponse.json({
+            error: `Product with code ${item.product_code} not found.`
+          }, { status: 404 });
+        }
+
+        // Check inventory availability
+        const inventoryItem = await Inventory.findOne({ product_id: product._id });
+        if (!inventoryItem || inventoryItem.quantity < item.quantity) {
+          return NextResponse.json({
+            error: `Insufficient inventory for product ${item.product_name || item.product_code}. Available: ${inventoryItem?.quantity || 0}, Requested: ${item.quantity}`
+          }, { status: 400 });
+        }
+      }
+    }
+
     // Create a new order with the data
     const newOrder = await Order.create(data);
+
+    // Update inventory after successful order creation
+    if (Array.isArray(data.items)) {
+      for (const item of data.items) {
+        const product = await Product.findOne({ code: item.product_code });
+        if (product) {
+          await Inventory.findOneAndUpdate(
+            { product_id: product._id },
+            { $inc: { quantity: -item.quantity }, $set: { last_updated: new Date() } },
+            { upsert: false }
+          );
+        }
+      }
+    }
 
     // Broadcast the change to all connected clients
     broadcastChange('orders', 'insert', newOrder._id.toString(), newOrder.toObject());
