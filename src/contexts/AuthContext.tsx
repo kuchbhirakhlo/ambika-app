@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface User {
-  role: User | null;
   id: string;
   name: string;
   email: string;
@@ -68,7 +67,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log('AuthContext: Token verified, user data:', data.user);
           setUser(data.user);
         } else {
-          const errorData = await response.json();
+          const errorData = await response.json().catch(() => ({ error: 'Invalid response' }));
           console.log('AuthContext: Token verification failed:', errorData);
           // Token is invalid, remove it
           localStorage.removeItem('auth-token');
@@ -76,15 +75,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } catch (error) {
         console.error('AuthContext: Authentication error:', error);
-        // On error, clear token and user
-        localStorage.removeItem('auth-token');
+        // On error, clear token and user but don't crash the app
+        try {
+          localStorage.removeItem('auth-token');
+        } catch (storageError) {
+          console.error('AuthContext: Could not clear localStorage:', storageError);
+        }
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
+    // Add a timeout to prevent hanging if API doesn't respond
+    const timeoutId = setTimeout(() => {
+      console.log('AuthContext: Auth check timeout, setting loading to false');
+      setLoading(false);
+    }, 10000); // 10 second timeout
+
+    checkAuth().finally(() => {
+      clearTimeout(timeoutId);
+    });
   }, []);
 
   const login = async (email: string, password: string) => {

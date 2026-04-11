@@ -133,9 +133,9 @@ export default function Dashboard() {
 
   const generateDashboardPDF = async () => {
     const ordersCount = todayOrders.length;
-    const ordersValue = todayOrders.reduce((sum, order) => sum + (parseFloat(order.totalAmount?.toString() || order.total.toString()) || 0), 0);
+    const ordersValue = todayOrders.reduce((sum, order) => sum + (parseFloat(order.totalAmount ?? order.total ?? 0) || 0), 0);
     const pendingCount = pendingEstimates.length;
-    const pendingValue = pendingEstimates.reduce((sum, estimate) => sum + (parseFloat(estimate.totalAmount?.toString() || estimate.total.toString()) || 0), 0);
+    const pendingValue = pendingEstimates.reduce((sum, estimate) => sum + (parseFloat(estimate.totalAmount ?? estimate.total ?? 0) || 0), 0);
     const lowStockCount = inventory.filter(item => item.quantity < 30).length;
     
     // Create data for PDF
@@ -177,7 +177,7 @@ export default function Dashboard() {
           <div className="text-2xl sm:text-3xl font-bold text-blue-600 my-2 sm:my-3">{todayOrders.length}</div>
           <div className="flex justify-between text-xs sm:text-sm text-gray-600">
             <span>Click to view details</span>
-            <span>₹{todayOrders.reduce((sum, order) => sum + (parseFloat(order.totalAmount?.toString() || order.total.toString()) || 0), 0).toFixed(2)}</span>
+            <span>₹{todayOrders.reduce((sum, order) => sum + (parseFloat(order.totalAmount ?? order.total ?? 0) || 0), 0).toFixed(2)}</span>
           </div>
         </div>
 
@@ -189,7 +189,7 @@ export default function Dashboard() {
           <div className="text-2xl sm:text-3xl font-bold text-blue-600 my-2 sm:my-3">{pendingEstimates.length}</div>
           <div className="flex justify-between text-xs sm:text-sm text-gray-600">
             <span>Awaiting approval</span>
-            <span>₹{pendingEstimates.reduce((sum, estimate) => sum + (parseFloat(estimate.totalAmount?.toString() || estimate.total.toString()) || 0), 0).toFixed(2)}</span>
+            <span>₹{pendingEstimates.reduce((sum, estimate) => sum + (parseFloat(estimate.totalAmount ?? estimate.total ?? 0) || 0), 0).toFixed(2)}</span>
           </div>
         </div>
 
@@ -243,7 +243,7 @@ export default function Dashboard() {
                               : 'No items'}
                           </td>
                           <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
-                            ₹{(parseFloat(order.totalAmount?.toString() || order.total.toString()) || 0).toFixed(2)}
+                            ₹{(parseFloat(order.totalAmount ?? order.total ?? 0) || 0).toFixed(2)}
                           </td>
                           <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                             <button 
@@ -296,7 +296,7 @@ export default function Dashboard() {
                               : 'No items'}
                           </td>
                           <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
-                            ₹{(parseFloat(estimate.totalAmount?.toString() || estimate.total.toString()) || 0).toFixed(2)}
+                            ₹{(parseFloat(estimate.totalAmount ?? estimate.total ?? 0) || 0).toFixed(2)}
                           </td>
                           <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                             <button 
@@ -409,7 +409,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-gray-600 font-medium">Total:</p>
-                  <p className="text-gray-800">₹{(parseFloat(selectedOrder.totalAmount?.toString() || selectedOrder.total.toString()) || 0).toFixed(2)}</p>
+                  <p className="text-gray-800">₹{(parseFloat(selectedOrder.totalAmount ?? selectedOrder.total ?? 0) || 0).toFixed(2)}</p>
                 </div>
               </div>
             </div>
