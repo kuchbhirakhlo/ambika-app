@@ -2,8 +2,8 @@ import { Schema, model, models, Document } from 'mongoose';
 
 export interface IAgent extends Document {
   name: string;
-  contact: string;
-  email: string;
+  contact?: string;
+  email?: string;
   city: string;
   createdAt: Date;
   updatedAt: Date;
@@ -18,7 +18,6 @@ const agentSchema = new Schema<IAgent>(
     },
     contact: {
       type: String,
-      required: [true, 'Contact number is required'],
       trim: true,
     },
     email: {

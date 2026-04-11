@@ -11,6 +11,7 @@ interface Order {
   order_id: string;
   date: string;
   customer_name: string;
+  agent_name: string;
   total_amount: number;
   advance_amount: number;
   balance_amount: number;
@@ -99,6 +100,7 @@ export default function SalesPage() {
   ]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [nextId, setNextId] = useState(2);
@@ -307,6 +309,12 @@ export default function SalesPage() {
       }
       const data = await response.json();
       setSelectedOrder(data.order);
+      // Try to load inventory, but don't fail if it doesn't
+      try {
+        await loadInventory();
+      } catch (invError) {
+        console.warn("Failed to load inventory:", invError);
+      }
       setShowOrderEditModal(true);
     } catch (error) {
       console.error("Error loading order:", error);
@@ -349,7 +357,7 @@ export default function SalesPage() {
         order_id: order.order_id,
         date: new Date().toISOString(),
         customer_name: order.customer_name,
-        agent_name: agentName,
+        agent_name: order.agent_name || agentName,
         total_items: order.items.length,
         total_amount: order.total_amount,
         status: 'Pending',
@@ -455,6 +463,12 @@ export default function SalesPage() {
       }
       const data = await response.json();
       setSelectedEstimate(data.estimate);
+      // Try to load inventory, but don't fail if it doesn't
+      try {
+        await loadInventory();
+      } catch (invError) {
+        console.warn("Failed to load inventory:", invError);
+      }
       setShowEstimateEditModal(true);
     } catch (error) {
       console.error("Error loading estimate:", error);
@@ -845,9 +859,13 @@ export default function SalesPage() {
       const newId = `ORD-${String(count + 1).padStart(3, '0')}`;
       setNewOrderId(newId);
 
-      // Load products and customers
+      // Load products, customers, and inventory
       await loadProducts();
       await loadCustomers();
+      await loadInventory();
+
+      // Set agent name automatically based on logged user
+      setAgentName(user?.name || "Admin User");
 
       setShowOrderModal(true);
     } catch (error) {
@@ -888,11 +906,27 @@ export default function SalesPage() {
     }
   };
 
+  const loadInventory = async () => {
+    try {
+      const response = await fetch('/api/inventory');
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setInventory(data.inventory || []);
+    } catch (error) {
+      console.error("Error loading inventory:", error);
+      setOrderError("Failed to load inventory. Please try again.");
+    }
+  };
+
   const closeOrderModal = () => {
     setShowOrderModal(false);
     setNewOrderId("");
     setOrderDate(format(new Date(), "yyyy-MM-dd"));
-    setAgentName("Admin User");
+    setAgentName(user?.name || "Admin User");
     setCustomerName("");
     setOrderItems([
       { id: 1, product_code: "", product_name: "", category: "", size: "", quantity: 0, rate: 0, total: 0 }
@@ -917,6 +951,27 @@ export default function SalesPage() {
     setSelectedOrder({ ...selectedOrder, items, total_amount: newTotal, balance_amount: newTotal - (selectedOrder.advance_amount || 0) } as Order);
   };
 
+  const handleEditProductCodeChange = (index: number, code: string) => {
+    if (!selectedOrder) return;
+    const items = selectedOrder.items ? [...selectedOrder.items] : [];
+    if (!items[index]) return;
+    const product = products.find(p => p.code === code);
+    items[index] = {
+      ...items[index],
+      product_code: code,
+      product_name: product?.name || '',
+      category: product?.category || '',
+      size: product?.size || '',
+      rate: product?.price || 0,
+      total: (product?.price || 0) * (items[index].quantity || 1)
+    } as any;
+
+    // Recalculate totals
+    const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
+
+    setSelectedOrder({ ...selectedOrder, items, total_amount: newTotal, balance_amount: newTotal - (selectedOrder.advance_amount || 0) } as Order);
+  };
+
   const handleEstimateQuantityChange = (index: number, quantity: number) => {
     if (!selectedEstimate) return;
     const items = selectedEstimate.items ? [...selectedEstimate.items] : [];
@@ -926,7 +981,54 @@ export default function SalesPage() {
     // Recalculate totals
     const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
 
-    setSelectedEstimate({ ...selectedEstimate, items, total_amount: newTotal } as Estimate);
+    setSelectedEstimate({ ...selectedEstimate, items, total_amount: newTotal, total_items: items.length } as Estimate);
+  };
+
+  const addEstimateProductRow = () => {
+    if (!selectedEstimate) return;
+    const newItem = { product_code: "", product_name: "", category: "", size: "", quantity: 1, rate: 0, total: 0 };
+    const items = selectedEstimate.items ? [...selectedEstimate.items, newItem] : [newItem];
+    setSelectedEstimate({ ...selectedEstimate, items, total_items: items.length } as Estimate);
+  };
+
+  const removeEstimateProductRow = (index: number) => {
+    if (!selectedEstimate) return;
+    const items = selectedEstimate.items ? [...selectedEstimate.items] : [];
+    if (items.length > 1) {
+      items.splice(index, 1);
+      const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
+      setSelectedEstimate({ ...selectedEstimate, items, total_amount: newTotal, total_items: items.length } as Estimate);
+    }
+  };
+
+  const handleEstimateProductCodeChange = (index: number, code: string) => {
+    if (!selectedEstimate) return;
+    const items = selectedEstimate.items ? [...selectedEstimate.items] : [];
+
+    // Check for duplicates
+    const duplicate = items.some((it, i) => i !== index && it.product_code === code && code);
+    if (duplicate) {
+      alert('This product code is already added to this estimate');
+      return;
+    }
+
+    const product = products.find(p => p.code === code);
+    if (items[index]) {
+      items[index] = {
+        ...items[index],
+        product_code: code,
+        product_name: product?.name || "",
+        category: product?.category || "",
+        size: product?.size || "",
+        rate: product?.price || 0,
+        total: (product?.price || 0) * (items[index].quantity || 1)
+      };
+
+      // Recalculate totals
+      const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
+
+      setSelectedEstimate({ ...selectedEstimate, items, total_amount: newTotal } as Estimate);
+    }
   };
 
   const saveEditedOrder = async () => {
@@ -1136,6 +1238,7 @@ export default function SalesPage() {
         order_id: newOrderId,
         date: formattedDate,
         customer_name: customerName,
+        agent_name: agentName,
         total_amount: total,
         advance_amount: getAdvanceAmountNumber(),
         balance_amount: balanceAmount,
@@ -1694,9 +1797,9 @@ export default function SalesPage() {
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                             ₹{item.total}
                           </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                            -
-                          </td>
+                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                             {inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0}
+                           </td>
                           <td className="px-3 py-4 whitespace-nowrap">
                             <button
                               onClick={() => removeProductRow(item.id)}
@@ -1847,139 +1950,45 @@ export default function SalesPage() {
                 <div className="overflow-x-auto">
                   <h3 className="text-lg font-semibold mb-2">Order Items</h3>
                   <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {selectedOrder.items.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap">
-                            <input
-                              type="number"
-                              min={0}
-                              value={item.quantity}
-                              onChange={(e) => handleEditQuantityChange(index, parseInt(e.target.value) || 0)}
-                              className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
-                            />
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
+                     <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                         </tr>
-                      ))}
+                     </thead>
+                     <tbody className="bg-white divide-y divide-gray-200">
+                         {selectedOrder.items.map((item, index) => (
+                          <tr key={index}>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.product_name}</td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
-                </div>
-              )}
-
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={closeOrderViewModal}
-                  className="bg-gray-500 text-black px-4 py-2 rounded-md hover:bg-gray-600"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Order Edit Modal */}
-      {showOrderEditModal && selectedOrder && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
-            <div className="flex flex-col">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Edit Order</h2>
-                <button
-                  onClick={closeOrderEditModal}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-md mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Order ID</label>
-                    <p className="text-sm text-gray-900">{selectedOrder.order_id}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                    <p className="text-sm text-gray-900">{formatDate(selectedOrder.date)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-                    <p className="text-sm text-gray-900">{selectedOrder.customer_name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                      value={selectedOrder.status}
-                      onChange={(e) => setSelectedOrder({ ...selectedOrder, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                    >
-                      <option value="Generate Estimate">Generate Estimate</option>
-                      <option value="Pending">Pending</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
-                    <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.total_amount)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Advance Amount</label>
-                    <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.advance_amount || 0)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Balance Amount</label>
-                    <p className="text-sm text-gray-900">{formatCurrency(selectedOrder.balance_amount || 0)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {selectedOrder.items && selectedOrder.items.length > 0 && (
-                <div className="overflow-x-auto">
-                  <h3 className="text-lg font-semibold mb-2">Order Items</h3>
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {selectedOrder.items.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap">
-                            <input
-                              type="number"
-                              min={1}
-                              value={item.quantity}
-                              onChange={(e) => handleEditQuantityChange(index, parseInt(e.target.value) || 1)}
-                              className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
-                            />
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <button
+                    onClick={() => {
+                      if (!selectedOrder) return;
+                      const nextId = (selectedOrder.items?.length || 0) + 1;
+                      const newItem = { id: nextId, product_code: "", product_name: "", category: "", size: "", quantity: 1, rate: 0, total: 0 };
+                      setSelectedOrder({
+                        ...selectedOrder,
+                        items: [...(selectedOrder.items || []), newItem]
+                      });
+                    }}
+                    className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                  >
+                    Add Product
+                  </button>
                 </div>
               )}
 
@@ -2108,86 +2117,119 @@ export default function SalesPage() {
             <div className="flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-gray-800">Edit Estimate</h2>
-                <button
-                  onClick={closeEstimateEditModal}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
+                 <button
+                   onClick={closeEstimateEditModal}
+                   className="text-gray-400 hover:text-gray-600"
+                 >
+                   ✕
+                 </button>
+               </div>
 
-              <div className="bg-gray-50 p-4 rounded-md mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Estimate ID</label>
-                    <p className="text-sm text-gray-900">{selectedEstimate.estimate_id}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                    <p className="text-sm text-gray-900">{formatDate(selectedEstimate.date)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
-                    <p className="text-sm text-gray-900">{selectedEstimate.customer_name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Agent Name</label>
-                    <p className="text-sm text-gray-900">{selectedEstimate.agent_name}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Items</label>
-                    <p className="text-sm text-gray-900">{selectedEstimate.total_items}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
-                    <p className="text-sm text-gray-900">{formatCurrency(selectedEstimate.total_amount)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                      value={selectedEstimate.status}
-                      onChange={(e) => setSelectedEstimate({ ...selectedEstimate, status: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
+               <div className="bg-gray-50 p-4 rounded-md mb-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Estimate ID</label>
+                     <p className="text-sm text-gray-900">{selectedEstimate.estimate_id}</p>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                     <p className="text-sm text-gray-900">{formatDate(selectedEstimate.date)}</p>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                     <p className="text-sm text-gray-900">{selectedEstimate.customer_name}</p>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Agent Name</label>
+                     <p className="text-sm text-gray-900">{selectedEstimate.agent_name}</p>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Total Items</label>
+                     <p className="text-sm text-gray-900">{selectedEstimate.total_items}</p>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+                     <p className="text-sm text-gray-900">{formatCurrency(selectedEstimate.total_amount)}</p>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                     <select
+                       value={selectedEstimate.status}
+                       onChange={(e) => setSelectedEstimate({ ...selectedEstimate, status: e.target.value })}
+                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                     >
+                       <option value="Pending">Pending</option>
+                       <option value="Completed">Completed</option>
+                     </select>
+                   </div>
+                 </div>
+               </div>
 
-              {selectedEstimate.items && selectedEstimate.items.length > 0 && (
-                <div className="overflow-x-auto">
-                  <h3 className="text-lg font-semibold mb-2">Estimate Items</h3>
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {selectedEstimate.items.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                          <td className="px-3 py-4 whitespace-nowrap">
-                            <input
-                              type="number"
-                              min={1}
-                              value={item.quantity}
-                              onChange={(e) => handleEstimateQuantityChange(index, parseInt(e.target.value) || 1)}
-                              className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
-                            />
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
-                        </tr>
-                      ))}
-                    </tbody>
+               {selectedEstimate.items && selectedEstimate.items.length > 0 && (
+                 <div className="overflow-x-auto">
+                   <h3 className="text-lg font-semibold mb-2">Estimate Items</h3>
+                   <table className="min-w-full divide-y divide-gray-200">
+                     <thead className="bg-gray-50">
+                       <tr>
+                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
+                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
+                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                         <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                       </tr>
+                     </thead>
+                     <tbody className="bg-white divide-y divide-gray-200">
+                        {selectedEstimate.items.map((item, index) => (
+                          <tr key={index}>
+                            <td className="px-3 py-4 whitespace-nowrap">
+                              <input
+                                type="text"
+                                value={item.product_code}
+                                onChange={(e) => handleEstimateProductCodeChange(index, e.target.value)}
+                                className="w-full max-w-[140px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
+                                list="product-list-estimate"
+                              />
+                              <datalist id="product-list-estimate">
+                                {products.map(product => (
+                                  <option key={product._id} value={product.code} />
+                                ))}
+                              </datalist>
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap">
+                              <input
+                                type="number"
+                                min={1}
+                                value={item.quantity}
+                                onChange={(e) => handleEstimateQuantityChange(index, parseInt(e.target.value) || 1)}
+                                className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
+                              />
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
+                            <td className="px-3 py-4 whitespace-nowrap">
+                              <button
+                                onClick={() => removeEstimateProductRow(index)}
+                                className="text-red-600 hover:text-red-800"
+                                disabled={selectedEstimate.items.length === 1}
+                              >
+                                Remove
+                              </button>
+                              {index === selectedEstimate.items.length - 1 && (
+                                <button
+                                  onClick={addEstimateProductRow}
+                                  className="ml-2 text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded-md"
+                                >
+                                  Add
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                     </tbody>
                   </table>
                 </div>
               )}

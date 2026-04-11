@@ -14,6 +14,7 @@ export interface IOrder extends Document {
   order_id: string;
   date: Date;
   customer_name: string;
+  agent_name: string;
   total_amount: number;
   advance_amount: number;
   balance_amount: number;
@@ -77,6 +78,11 @@ const orderSchema = new Schema<IOrder>(
     customer_name: {
       type: String,
       required: [true, 'Customer name is required'],
+      trim: true,
+    },
+    agent_name: {
+      type: String,
+      required: [true, 'Agent name is required'],
       trim: true,
     },
     total_amount: {

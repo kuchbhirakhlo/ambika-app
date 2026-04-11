@@ -51,6 +51,7 @@ export default function Reports() {
   const [products, setProducts] = useState<Product[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -59,7 +60,6 @@ export default function Reports() {
 
   const [agentWiseYear, setAgentWiseYear] = useState(selectedYear);
   const [agentWiseAgent, setAgentWiseAgent] = useState("");
-  const [agentWiseDateRange, setAgentWiseDateRange] = useState({ start: "", end: "" });
   const [agentWiseStatus, setAgentWiseStatus] = useState("");
 
   // Enable real-time sync for reports data
@@ -79,22 +79,25 @@ export default function Reports() {
     try {
       setLoading(true);
 
-      const [ordersRes, estimatesRes, productsRes, inventoryRes] = await Promise.all([
+      const [ordersRes, estimatesRes, productsRes, inventoryRes, agentsRes] = await Promise.all([
         fetch('/api/orders'),
         fetch('/api/estimates'),
         fetch('/api/products'),
         fetch('/api/inventory'),
+        fetch('/api/agents'),
       ]);
 
       const ordersData = ordersRes.ok ? await ordersRes.json() : { orders: [] };
       const estimatesData = estimatesRes.ok ? await estimatesRes.json() : { estimates: [] };
       const productsData = productsRes.ok ? await productsRes.json() : { products: [] };
       const inventoryData = inventoryRes.ok ? await inventoryRes.json() : { inventory: [] };
+      const agentsData = agentsRes.ok ? await agentsRes.json() : { agents: [] };
 
       setOrders(ordersData.orders || []);
       setEstimates(estimatesData.estimates || []);
       setProducts(productsData.products || []);
       setInventory(inventoryData.inventory || []);
+      setAgents(agentsData.agents || []);
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -120,7 +123,7 @@ export default function Reports() {
       });
     }
     if (pendingOrdersAgent) {
-      filtered = filtered.filter(est => est.agent_name === pendingOrdersAgent);
+      filtered = filtered.filter(est => est.agent_name?.trim().toLowerCase() === pendingOrdersAgent.trim().toLowerCase());
     }
     return filtered;
   };
@@ -134,15 +137,7 @@ export default function Reports() {
       });
     }
     if (agentWiseAgent) {
-      filtered = filtered.filter(est => est.agent_name === agentWiseAgent);
-    }
-    if (agentWiseDateRange.start && agentWiseDateRange.end) {
-      const start = new Date(agentWiseDateRange.start);
-      const end = new Date(agentWiseDateRange.end);
-      filtered = filtered.filter(est => {
-        const d = new Date(est.date);
-        return d >= start && d <= end;
-      });
+      filtered = filtered.filter(est => est.agent_name?.trim().toLowerCase() === agentWiseAgent.trim().toLowerCase());
     }
     if (agentWiseStatus) {
       filtered = filtered.filter(est => est.status === agentWiseStatus);
@@ -195,7 +190,7 @@ export default function Reports() {
 
     // Add sold quantities (from estimates, assuming estimates represent sales)
     estimates.forEach(estimate => {
-      if (estimate.status === 'Completed' && estimate.items) {
+      if ((estimate.status === 'Pending' || estimate.status === 'Completed') && estimate.items) {
         estimate.items.forEach((item: any) => {
           const code = item.product_code;
           if (productData[code]) {
@@ -292,16 +287,16 @@ export default function Reports() {
             </div>
             <div>
               <label className="block text-sm font-medium text-black mb-1">Agent</label>
-              <select
-                value={pendingOrdersAgent}
-                onChange={(e) => setPendingOrdersAgent(e.target.value)}
-                className="w-full border border-gray-300 rounded-md p-2 text-sm text-black"
-              >
-                <option value="">All Agents</option>
-                {Array.from(new Set(estimates.map(e => e.agent_name))).map(agent => (
-                  <option key={agent} value={agent}>{agent}</option>
-                ))}
-              </select>
+               <select
+                 value={pendingOrdersAgent}
+                 onChange={(e) => setPendingOrdersAgent(e.target.value)}
+                 className="w-full border border-gray-300 rounded-md p-2 text-sm text-black"
+               >
+                 <option value="">All Agents</option>
+                 {agents.map(agent => (
+                   <option key={agent.name} value={agent.name}>{agent.name}</option>
+                 ))}
+               </select>
             </div>
           </div>
 
@@ -374,7 +369,7 @@ export default function Reports() {
           </div>
 
           {/* Filters */}
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-black mb-1">Year</label>
               <select
@@ -391,35 +386,18 @@ export default function Reports() {
             </div>
             <div>
               <label className="block text-sm font-medium text-black mb-1">Agent</label>
-              <select
-                value={agentWiseAgent}
-                onChange={(e) => setAgentWiseAgent(e.target.value)}
-                className="w-full border border-gray-300 rounded-md p-2 text-sm text-black"
-              >
-                <option value="">All Agents</option>
-                {Array.from(new Set(estimates.map(e => e.agent_name))).map(agent => (
-                  <option key={agent} value={agent}>{agent}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-black mb-1">Date Range</label>
-              <div className="flex space-x-2">
-                <input
-                  type="date"
-                  value={agentWiseDateRange.start}
-                  onChange={(e) => setAgentWiseDateRange(prev => ({ ...prev, start: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-md p-2 text-sm text-black"
-                />
-                <input
-                  type="date"
-                  value={agentWiseDateRange.end}
-                  onChange={(e) => setAgentWiseDateRange(prev => ({ ...prev, end: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-md p-2 text-sm text-black"
-                />
-              </div>
-            </div>
-            <div>
+               <select
+                 value={agentWiseAgent}
+                 onChange={(e) => setAgentWiseAgent(e.target.value)}
+                 className="w-full border border-gray-300 rounded-md p-2 text-sm text-black"
+               >
+                 <option value="">All Agents</option>
+                 {agents.map(agent => (
+                   <option key={agent.name} value={agent.name}>{agent.name}</option>
+                 ))}
+               </select>
+             </div>
+             <div>
               <label className="block text-sm font-medium text-black mb-1">Status</label>
               <select
                 value={agentWiseStatus}
