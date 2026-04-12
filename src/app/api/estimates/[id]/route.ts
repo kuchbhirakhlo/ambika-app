@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Estimate from '@/models/estimate';
 import Order from '@/models/order';
+import Product from '@/models/product';
 import { broadcastChange } from '@/lib/broadcast-sync';
+import { connectToDatabase } from "@/lib/mongodb";
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -158,11 +160,22 @@ export async function DELETE(
     // Use 'Generate Estimate' status when estimate is removed
     await Order.findOneAndUpdate(
       { order_id: deletedEstimate.order_id },
-      { 
+      {
         estimate_id: null,
         status: 'Generate Estimate'
       }
     );
+
+    // Restore inventory after estimate deletion
+    if (Array.isArray(deletedEstimate.items)) {
+      const { db } = await connectToDatabase();
+      for (const item of deletedEstimate.items) {
+        await db.collection("inventory").updateOne(
+          { product_code: item.product_code },
+          { $inc: { quantity: item.quantity }, $set: { updated_at: new Date().toISOString() } }
+        );
+      }
+    }
 
     // Broadcast the change to all connected clients
     broadcastChange('estimates', 'delete', deletedEstimate._id.toString());

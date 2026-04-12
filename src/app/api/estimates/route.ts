@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Estimate from '@/models/estimate';
 import Order from '@/models/order';
+import Product from '@/models/product';
 import { broadcastChange } from '@/lib/broadcast-sync';
+import { connectToDatabase } from "@/lib/mongodb";
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -74,9 +76,9 @@ export async function POST(request: NextRequest) {
       const maxAttempts = 5;
       while (attempts < maxAttempts) {
         // Find the latest estimate_id and increment it
-        const lastEstimate = await Estimate.findOne({}).sort({ estimate_id: -1 }).lean();
-        const lastNumber = lastEstimate?.estimate_id
-          ? parseInt(lastEstimate.estimate_id.replace(/[^\d]/g, ''), 10) || 0
+        const lastEstimate = await Estimate.findOne({}).sort({ estimate_id: -1 });
+        const lastNumber = (lastEstimate as any)?.estimate_id
+          ? parseInt((lastEstimate as any).estimate_id.replace(/[^\d]/g, ''), 10) || 0
           : 0;
         const nextNumber = lastNumber + 1;
         const nextId = `EST-${String(nextNumber).padStart(3, '0')}`;
@@ -88,11 +90,22 @@ export async function POST(request: NextRequest) {
           // Update the order with the estimate ID and change status
           await Order.findOneAndUpdate(
             { order_id: data.order_id },
-            { 
+            {
               estimate_id: newEstimate.estimate_id,
               status: 'Pending'
             }
           );
+
+          // Update inventory after successful estimate creation
+          if (Array.isArray(data.items)) {
+            const { db } = await connectToDatabase();
+            for (const item of data.items) {
+              await db.collection("inventory").updateOne(
+                { product_code: item.product_code },
+                { $inc: { quantity: -item.quantity }, $set: { updated_at: new Date().toISOString() } }
+              );
+            }
+          }
 
           // Broadcast the change to all connected clients
           broadcastChange('estimates', 'insert', newEstimate._id.toString(), newEstimate.toObject());
@@ -119,15 +132,26 @@ export async function POST(request: NextRequest) {
     
     // Create a new estimate with the provided estimate_id (if caller set it)
     const newEstimate = await Estimate.create(data);
-    
+
     // Update the order with the estimate ID and change status
     await Order.findOneAndUpdate(
       { order_id: data.order_id },
-      { 
+      {
         estimate_id: newEstimate.estimate_id,
         status: 'Pending'
       }
     );
+
+    // Update inventory after successful estimate creation
+    if (Array.isArray(data.items)) {
+      const { db } = await connectToDatabase();
+      for (const item of data.items) {
+        await db.collection("inventory").updateOne(
+          { product_code: item.product_code },
+          { $inc: { quantity: -item.quantity }, $set: { updated_at: new Date().toISOString() } }
+        );
+      }
+    }
 
     // Broadcast the change to all connected clients
     broadcastChange('estimates', 'insert', newEstimate._id.toString(), newEstimate.toObject());

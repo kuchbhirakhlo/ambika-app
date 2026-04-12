@@ -176,32 +176,55 @@ export default function Reports() {
       };
     });
 
+    // Calculate sold quantities from orders and estimates
+    const calculateSoldQty = (code: string) => {
+      let totalSold = 0;
+
+      // Get sold quantities from orders
+      orders.forEach(order => {
+        if (order.items) {
+          order.items.forEach((item: any) => {
+            if (item.product_code === code) {
+              totalSold += item.quantity || 0;
+            }
+          });
+        }
+      });
+
+      // Get sold quantities from estimates
+      estimates.forEach(estimate => {
+        if (estimate.items) {
+          estimate.items.forEach((item: any) => {
+            if (item.product_code === code) {
+              totalSold += item.quantity || 0;
+            }
+          });
+        }
+      });
+
+      return totalSold;
+    };
+
     // Add purchased quantities (from inventory - all time purchased, which is current stock + sold quantities)
     // Purchased = In Stock + Sold (since inventory decreases when sold)
     inventory.forEach(inv => {
       const code = inv.product_code;
       if (productData[code]) {
-        // Calculate total purchased by adding current stock to sold quantities
-        let totalSold = 0;
-
-        // Get sold quantities from orders (completed orders represent actual sales)
-        orders.forEach(order => {
-          if (order.items) {
-            order.items.forEach((item: any) => {
-              if (item.product_code === code) {
-                totalSold += item.quantity || 0;
-              }
-            });
-          }
-        });
-
+        const totalSold = calculateSoldQty(code);
         productData[code].inStockQty = inv.quantity || 0;
         productData[code].soldQty = totalSold;
         productData[code].purchasedQty = productData[code].inStockQty + productData[code].soldQty;
       }
     });
 
-    return Object.values(productData);
+    // For products without inventory but with sales, set purchased = sold (assuming they were purchased and sold)
+    Object.keys(productData).forEach(code => {
+      if (productData[code].purchasedQty === 0 && productData[code].soldQty > 0) {
+        productData[code].purchasedQty = productData[code].soldQty;
+      }
+    });
+
+    return Object.values(productData).sort((a, b) => a.code.localeCompare(b.code));
   };
 
   if (loading) {

@@ -52,30 +52,30 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if inventory item already exists
-    const existingItem = await db.collection("inventory").findOne({ 
-      product_id: product_id 
+    const existingItem = await db.collection("inventory").findOne({
+      product_id: productObjectId
     });
-    
+
     let result;
     let newItem;
-    
+
     if (existingItem) {
       // Update existing inventory item
       result = await db.collection("inventory").updateOne(
-        { product_id: product_id },
-        { 
-          $set: { 
+        { product_id: productObjectId },
+        {
+          $set: {
             quantity: parseInt(existingItem.quantity || 0) + parseInt(quantity),
             updated_at: new Date().toISOString()
-          } 
+          }
         }
       );
-      
-      newItem = await db.collection("inventory").findOne({ product_id: product_id });
+
+      newItem = await db.collection("inventory").findOne({ product_id: productObjectId });
     } else {
       // Create new inventory item
       const newInventoryItem = {
-        product_id: product_id,
+        product_id: productObjectId,
         product_code: product_code,
         product_name: product_name,
         size: size,
@@ -85,10 +85,10 @@ export async function POST(request: NextRequest) {
         location: location || "Main Warehouse",
         updated_at: new Date().toISOString()
       };
-      
+
       result = await db.collection("inventory").insertOne(newInventoryItem);
       newItem = { _id: result.insertedId, ...newInventoryItem };
-      
+
     }
 
     if (newItem) {

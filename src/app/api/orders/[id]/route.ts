@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Order from '@/models/order';
+import Product from '@/models/product';
+import { broadcastChange } from '@/lib/broadcast-sync';
+import { connectToDatabase } from "@/lib/mongodb";
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -111,7 +114,8 @@ export async function PUT(
     }
     
     // Broadcast the change to all connected clients
-    
+    broadcastChange('orders', 'update', updatedOrder._id.toString(), updatedOrder.toObject());
+
     return NextResponse.json(
       { message: 'Order updated successfully', order: updatedOrder },
       { status: 200 }
@@ -152,16 +156,28 @@ export async function DELETE(
     }
     
     const deletedOrder = await Order.findOneAndDelete(query);
-    
+
     if (!deletedOrder) {
       return NextResponse.json(
         { error: 'Order not found' },
         { status: 404 }
       );
     }
-    
+
+    // Restore inventory after order deletion
+    if (Array.isArray(deletedOrder.items)) {
+      const { db } = await connectToDatabase();
+      for (const item of deletedOrder.items) {
+        await db.collection("inventory").updateOne(
+          { product_code: item.product_code },
+          { $inc: { quantity: item.quantity }, $set: { updated_at: new Date().toISOString() } }
+        );
+      }
+    }
+
     // Broadcast the change to all connected clients
-    
+    broadcastChange('orders', 'delete', deletedOrder._id.toString());
+
     return NextResponse.json(
       { message: 'Order deleted successfully' },
       { status: 200 }

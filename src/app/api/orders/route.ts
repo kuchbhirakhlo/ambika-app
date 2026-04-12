@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import Order from '@/models/order';
-import Inventory from '@/models/inventory';
 import Product from '@/models/product';
 import { broadcastChange } from '@/lib/broadcast-sync';
+import { connectToDatabase } from "@/lib/mongodb";
 
 // Connect to MongoDB
 const connectMongo = async () => {
@@ -97,16 +97,9 @@ export async function POST(request: NextRequest) {
           }, { status: 400 });
         }
 
-        // Find the product to get its ObjectId
-        const product = await Product.findOne({ code: item.product_code });
-        if (!product) {
-          return NextResponse.json({
-            error: `Product with code ${item.product_code} not found.`
-          }, { status: 404 });
-        }
-
-        // Check inventory availability
-        const inventoryItem = await Inventory.findOne({ product_id: product._id });
+        // Check inventory availability by product code
+        const { db } = await connectToDatabase();
+        const inventoryItem = await db.collection("inventory").findOne({ product_code: item.product_code });
         if (!inventoryItem || inventoryItem.quantity < item.quantity) {
           return NextResponse.json({
             error: `Insufficient inventory for product ${item.product_name || item.product_code}. Available: ${inventoryItem?.quantity || 0}, Requested: ${item.quantity}`
@@ -120,15 +113,12 @@ export async function POST(request: NextRequest) {
 
     // Update inventory after successful order creation
     if (Array.isArray(data.items)) {
+      const { db } = await connectToDatabase();
       for (const item of data.items) {
-        const product = await Product.findOne({ code: item.product_code });
-        if (product) {
-          await Inventory.findOneAndUpdate(
-            { product_id: product._id },
-            { $inc: { quantity: -item.quantity }, $set: { last_updated: new Date() } },
-            { upsert: false }
-          );
-        }
+        await db.collection("inventory").updateOne(
+          { product_code: item.product_code },
+          { $inc: { quantity: -item.quantity }, $set: { updated_at: new Date().toISOString() } }
+        );
       }
     }
 
