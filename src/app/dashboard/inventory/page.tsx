@@ -426,12 +426,12 @@ export default function Inventory() {
                       <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">₹{item.price ? item.price.toFixed(2) : '0.00'}</td>
                       <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">{item.quantity || 0}</td>
                       <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 sm:py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        <span className={`px-2 py-0.5 sm:py-1 inline-flex text-xs leading-5 font-semibold rounded-full text-white ${
                           item.quantity < 37
-                            ? "bg-red-100 text-red-800"
+                            ? "bg-red-600"
                             : item.quantity <= 72
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-green-100 text-green-800"
+                            ? "bg-blue-600"
+                            : "bg-green-600"
                         }`}>
                           {getStockLevelText(item.quantity)}
                         </span>

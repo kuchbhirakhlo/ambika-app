@@ -120,20 +120,19 @@ export default function AddSupplierModal({ isOpen, onClose, onSuccess }: AddSupp
             />
           </div>
           
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-              Email*
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              required
-            />
-          </div>
+           <div className="mb-4">
+             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+               Email
+             </label>
+             <input
+               type="email"
+               id="email"
+               name="email"
+               value={formData.email}
+               onChange={handleChange}
+               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+             />
+           </div>
           
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phone">
