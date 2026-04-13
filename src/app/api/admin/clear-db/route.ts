@@ -4,6 +4,12 @@ import User from '@/models/user';
 import Vendor from '@/models/vendor';
 import Product from '@/models/product';
 import Order from '@/models/order';
+import Agent from '@/models/agent';
+import Customer from '@/models/customer';
+import Employee from '@/models/employee';
+import Estimate from '@/models/estimate';
+import Inventory from '@/models/inventory';
+import Supplier from '@/models/supplier';
 import { verifyToken } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
@@ -53,23 +59,35 @@ export async function POST(req: NextRequest) {
     
     const adminIds = adminUsers.map(admin => admin._id);
     
-    // Clear all collections except admin users
-    const userResult = await User.deleteMany({ _id: { $nin: adminIds } });
-    const vendorResult = await Vendor.deleteMany({});
-    const productResult = await Product.deleteMany({});
-    const orderResult = await Order.deleteMany({});
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Database cleared successfully while preserving admin users',
-      details: {
-        deletedUsers: userResult.deletedCount,
-        deletedVendors: vendorResult.deletedCount,
-        deletedProducts: productResult.deletedCount,
-        deletedOrders: orderResult.deletedCount,
-        preservedAdmins: adminIds.length
-      }
-    });
+     // Clear all collections except admin users
+     const userResult = await User.deleteMany({ _id: { $nin: adminIds } });
+     const vendorResult = await Vendor.deleteMany({});
+     const productResult = await Product.deleteMany({});
+     const orderResult = await Order.deleteMany({});
+     const agentResult = await Agent.deleteMany({});
+     const customerResult = await Customer.deleteMany({});
+     const employeeResult = await Employee.deleteMany({});
+     const estimateResult = await Estimate.deleteMany({});
+     const inventoryResult = await Inventory.deleteMany({});
+     const supplierResult = await Supplier.deleteMany({});
+
+     return NextResponse.json({
+       success: true,
+       message: 'Database cleared successfully while preserving admin users',
+       details: {
+         deletedUsers: userResult.deletedCount,
+         deletedVendors: vendorResult.deletedCount,
+         deletedProducts: productResult.deletedCount,
+         deletedOrders: orderResult.deletedCount,
+         deletedAgents: agentResult.deletedCount,
+         deletedCustomers: customerResult.deletedCount,
+         deletedEmployees: employeeResult.deletedCount,
+         deletedEstimates: estimateResult.deletedCount,
+         deletedInventory: inventoryResult.deletedCount,
+         deletedSuppliers: supplierResult.deletedCount,
+         preservedAdmins: adminIds.length
+       }
+     });
     
   } catch (error) {
     console.error('Clear database error:', error);

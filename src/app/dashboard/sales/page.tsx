@@ -922,6 +922,18 @@ export default function SalesPage() {
     }
   };
 
+  const getStockLevelText = (quantity: number) => {
+    if (quantity < 37) return "Low";
+    if (quantity <= 72) return "Medium";
+    return "High";
+  };
+
+  const getStockLevelColor = (quantity: number) => {
+    if (quantity < 37) return "bg-red-600 text-white";
+    if (quantity <= 72) return "bg-blue-600 text-white";
+    return "bg-green-600 text-white";
+  };
+
   const closeOrderModal = () => {
     setShowOrderModal(false);
     setNewOrderId("");
@@ -1797,8 +1809,12 @@ export default function SalesPage() {
                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
                             ₹{item.total}
                           </td>
-                           <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                             {inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0}
+                           <td className="px-3 py-4 whitespace-nowrap text-sm">
+                             <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                               getStockLevelColor(inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0)
+                             }`}>
+                               {inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0}
+                             </span>
                            </td>
                           <td className="px-3 py-4 whitespace-nowrap">
                             <button
@@ -2206,9 +2222,13 @@ export default function SalesPage() {
                               />
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0}
-                            </td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm">
+                               <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                 getStockLevelColor(inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0)
+                               }`}>
+                                 {inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0}
+                               </span>
+                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
                             <td className="px-3 py-4 whitespace-nowrap">
                               <button

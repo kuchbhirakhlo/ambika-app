@@ -167,6 +167,12 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 >
                   Report
                 </Link>
+                <Link
+                  href="/dashboard/settings"
+                  className={`border-b-2 whitespace-nowrap ${pathname === '/dashboard/settings' ? 'border-[#34495e] text-[#34495e]' : 'border-transparent hover:border-[#34495e]/30 text-gray-600 hover:text-[#34495e]'} px-3 py-4 text-sm font-medium transition-colors flex-shrink-0`}
+                >
+                  Settings
+                </Link>
               </>
             )}
           </div>
