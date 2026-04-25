@@ -557,7 +557,7 @@ export default function SalesPage() {
     max-width: 100%;
     width: 100%;
     margin: 0 auto;
-    padding: 10px 20px;
+    padding: 5px 10px;
     border: 1px solid #000;
     box-sizing: border-box;
     display: flex;
@@ -580,17 +580,17 @@ export default function SalesPage() {
 
 
   .company-name {
-    font-size: 14px;
+    font-size: 17px;
     font-weight: bold;
   }
 
   .company-details {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .bill-title {
     text-align: center;
-    font-size: 12px;
+    font-size: 15px;
     font-weight: bold;
     margin: 5px 0;
     text-transform: uppercase;
@@ -600,7 +600,7 @@ export default function SalesPage() {
     display: flex;
     justify-content: space-between;
     margin-bottom: 5px;
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .info-block {
@@ -614,20 +614,20 @@ export default function SalesPage() {
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 8px;
+    font-size: 11px;
   }
 
   th, td {
     border: 1px solid #000;
-    padding: 1px 2px;
-    font-size: 8px;
+    padding: 3px 4px;
+    font-size: 11px;
   }
 
   th {
     background: #f0f0f0;
     text-align: center;
-    font-size: 8px;
-    padding: 1px;
+    font-size: 11px;
+    padding: 3px;
   }
 
   td {
@@ -639,11 +639,11 @@ export default function SalesPage() {
 
   .total-section {
   margin-top: 20px;
-  font-size: 13px;
+  font-size: 15px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  
+
 }
 
 .total-left {
@@ -660,7 +660,7 @@ export default function SalesPage() {
 }
 
 .grand-total {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: bold;
   margin-top: 8px;
   padding-top: 8px;
@@ -668,12 +668,12 @@ export default function SalesPage() {
 .summary-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8px;
+  font-size: 11px;
 }
 
 .summary-table td {
   border: 1px solid #000;
-  padding: 2px;
+  padding: 4px;
 }
 
 .summary-label {
@@ -698,7 +698,7 @@ export default function SalesPage() {
   .footer {
     margin-top: 20px;
     text-align: center;
-    font-size: 11px;
+    font-size: 13px;
   }
 
   @media print {
@@ -708,7 +708,7 @@ export default function SalesPage() {
     }
     @page {
       size: A4;
-      margin: 5mm;
+      margin: 3mm;
     }
     html, body {
       height: auto;
