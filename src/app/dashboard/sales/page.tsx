@@ -113,6 +113,7 @@ export default function SalesPage() {
   const [showOrderEditModal, setShowOrderEditModal] = useState(false);
   const [showEstimateViewModal, setShowEstimateViewModal] = useState(false);
   const [showEstimateEditModal, setShowEstimateEditModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedEstimate, setSelectedEstimate] = useState<Estimate | null>(null);
 
@@ -580,17 +581,17 @@ export default function SalesPage() {
 
 
   .company-name {
-    font-size: 17px;
+    font-size: 22px;
     font-weight: bold;
   }
 
   .company-details {
-    font-size: 12px;
+    font-size: 17px;
   }
 
   .bill-title {
     text-align: center;
-    font-size: 15px;
+    font-size: 20px;
     font-weight: bold;
     margin: 5px 0;
     text-transform: uppercase;
@@ -600,7 +601,7 @@ export default function SalesPage() {
     display: flex;
     justify-content: space-between;
     margin-bottom: 5px;
-    font-size: 12px;
+    font-size: 17px;
   }
 
   .info-block {
@@ -614,20 +615,20 @@ export default function SalesPage() {
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 11px;
+    font-size: 16px;
   }
 
   th, td {
     border: 1px solid #000;
-    padding: 3px 4px;
-    font-size: 11px;
+    padding: 4px 5px;
+    font-size: 16px;
   }
 
   th {
     background: #f0f0f0;
     text-align: center;
-    font-size: 11px;
-    padding: 3px;
+    font-size: 16px;
+    padding: 4px;
   }
 
   td {
@@ -639,7 +640,7 @@ export default function SalesPage() {
 
   .total-section {
   margin-top: 20px;
-  font-size: 15px;
+  font-size: 20px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -660,7 +661,7 @@ export default function SalesPage() {
 }
 
 .grand-total {
-  font-size: 19px;
+  font-size: 24px;
   font-weight: bold;
   margin-top: 8px;
   padding-top: 8px;
@@ -668,12 +669,12 @@ export default function SalesPage() {
 .summary-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: 16px;
 }
 
 .summary-table td {
   border: 1px solid #000;
-  padding: 4px;
+  padding: 5px;
 }
 
 .summary-label {
@@ -698,7 +699,7 @@ export default function SalesPage() {
   .footer {
     margin-top: 20px;
     text-align: center;
-    font-size: 13px;
+    font-size: 18px;
   }
 
   @media print {
@@ -708,7 +709,7 @@ export default function SalesPage() {
     }
     @page {
       size: A4;
-      margin: 3mm;
+      margin: 3mm 0 3mm 3mm;
     }
     html, body {
       height: auto;
@@ -855,6 +856,157 @@ export default function SalesPage() {
     } catch (error) {
       console.error("Error printing estimate:", error);
       alert("Failed to print estimate. Please try again.");
+    }
+  };
+
+  const printLabels = async (estimateId: string) => {
+    try {
+      // Fetch the estimate details
+      const estimateResponse = await fetch(`/api/estimates/${estimateId}`);
+      if (!estimateResponse.ok) {
+        throw new Error(`Error: ${estimateResponse.status}`);
+      }
+      const estimateData = await estimateResponse.json();
+      const estimate = estimateData.estimate;
+
+      if (!estimate || !estimate.items || estimate.items.length === 0) {
+        alert("No items found in estimate.");
+        return;
+      }
+
+      const labels = estimate.items.map((item: any, index: number) => ({
+        serialNo: index + 1,
+        price: item.rate || 0,
+        productName: item.product_name || "",
+        designNo: item.dest_no || "",
+        qty: item.quantity || 0,
+        customerId: estimate.customer_name || ""
+      }));
+
+      const labelsPerPage = 30;
+      const totalPages = Math.ceil(labels.length / labelsPerPage);
+
+      let printContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Labels ${estimate.estimate_id}</title>
+           <style>
+  @page {
+    size: A4;
+    margin: 5mm;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    color: #000;
+    background: white;
+  }
+
+  .label-page {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 2mm;
+    height: 100vh;
+    page-break-after: always;
+  }
+
+  .label-page:last-child {
+    page-break-after: auto;
+  }
+
+  .label {
+    padding: 3mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1.3;
+    text-align: left;
+    word-wrap: break-word;
+  }
+
+  .label div {
+    margin-bottom: 1mm;
+  }
+
+  .label .label-line {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media print {
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .label-page {
+      page-break-inside: avoid;
+    }
+    .label {
+      page-break-inside: avoid;
+    }
+  }
+</style>
+
+<body>
+`;
+
+      for (let page = 0; page < totalPages; page++) {
+        const start = page * labelsPerPage;
+        const end = Math.min(start + labelsPerPage, labels.length);
+        const pageLabels = labels.slice(start, end);
+
+        printContent += `<div class="label-page">`;
+
+        for (let i = 0; i < 30; i++) {
+          if (i < pageLabels.length) {
+            const label = pageLabels[i];
+            printContent += `
+              <div class="label">
+                <div>Sr.No: ${label.serialNo}</div>
+                <div>Rs.: ${label.price.toFixed(2)}</div>
+                <div>Prod.: ${label.productName}</div>
+                <div>D.No: ${label.designNo}</div>
+                <div>Qty: ${label.qty}</div>
+                <div>Cust.ID: ${label.customerId}</div>
+              </div>
+            `;
+          } else {
+            printContent += `<div class="label"></div>`;
+          }
+        }
+
+        printContent += `</div>`;
+      }
+
+      printContent += `
+<script>
+  window.onload = function() {
+    window.print();
+  };
+</script>
+</body>
+
+        </html>
+      `;
+
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+      } else {
+        alert("Please allow pop-ups to print the labels.");
+      }
+    } catch (error) {
+      console.error("Error printing labels:", error);
+      alert("Failed to print labels. Please try again.");
     }
   };
 
@@ -1649,7 +1801,10 @@ export default function SalesPage() {
                               Delete
                             </button>
                             <button
-                              onClick={() => printEstimate(estimate.estimate_id)}
+                              onClick={() => {
+                                setSelectedEstimate(estimate);
+                                setShowPrintModal(true);
+                              }}
                               className="text-blue-600 hover:text-blue-900"
                             >
                               Print
@@ -2137,6 +2292,45 @@ export default function SalesPage() {
                   className="bg-gray-500 text-black px-4 py-2 rounded-md hover:bg-gray-600"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print Modal */}
+      {showPrintModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3 text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Print Options</h3>
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={() => {
+                    setShowPrintModal(false);
+                    printEstimate(selectedEstimate!._id);
+                  }}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                >
+                  Print Estimate
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPrintModal(false);
+                    printLabels(selectedEstimate!._id);
+                  }}
+                  className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+                >
+                  Print Label
+                </button>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowPrintModal(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+                >
+                  Cancel
                 </button>
               </div>
             </div>
