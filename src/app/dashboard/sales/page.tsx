@@ -510,19 +510,28 @@ export default function SalesPage() {
       const estimateData = await estimateResponse.json();
       const estimate = estimateData.estimate;
 
-      // Fetch the parent order to get balance amount
-      let orderBalance = 0;
+      // Fetch the parent order to get advance amount
       let orderAdvance = 0;
       if (estimate && estimate.order_id) {
         const orderResponse = await fetch(`/api/orders/${estimate.order_id}`);
         if (orderResponse.ok) {
           const orderData = await orderResponse.json();
           if (orderData.order) {
-            orderBalance = orderData.order.balance_amount || 0;
             orderAdvance = orderData.order.advance_amount || 0;
+          } else {
+            orderAdvance = 0;
           }
+        } else {
+          orderAdvance = 0;
         }
+      } else {
+        orderAdvance = 0;
       }
+
+      // Calculate totals
+      const grandTotal = estimate.total_amount;
+      const pfCharges = estimate.pf_charges || 0;
+      const balanceAmount = grandTotal + pfCharges - orderAdvance;
 
       // Create printable content
       const printContent = `
@@ -548,14 +557,21 @@ export default function SalesPage() {
     max-width: 100%;
     width: 100%;
     margin: 0 auto;
-    padding: 10px 15px;
+    padding: 10px 20px;
     border: 1px solid #000;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    justify-content: space-between;
+  }
+
+  .content {
+    flex: 1;
   }
 
   .items-table {
     width: 100%;
-    margin-bottom: 500px;
   }
 
   .summary-table {
@@ -716,18 +732,19 @@ export default function SalesPage() {
 <body>
 <div class="bill-container">
 
-  <div class="info-section">
-    <div class="info-block">
-      <div><span class="info-label">Estimate No:</span> ${estimate.estimate_id}</div>
-      <div><span class="info-label">Party:</span> ${estimate.customer_name}</div>
-      <div><span class="info-label">Address:</span> ${estimate.address}</div>
+  <div class="content">
+    <div class="info-section">
+      <div class="info-block">
+        <div><span class="info-label">Estimate No:</span> ${estimate.estimate_id}</div>
+        <div><span class="info-label">Party:</span> ${estimate.customer_name}</div>
+        <div><span class="info-label">Address:</span> ${estimate.address}</div>
+      </div>
+          <div class="company-details text-right">
+        Date: ${format(new Date(estimate.date), "dd/MM/yyyy")}
+      </div>
     </div>
-        <div class="company-details text-right">
-      Date: ${format(new Date(estimate.date), "dd/MM/yyyy")}
-    </div>
-  </div>
 
-  <table class="items-table">
+    <table class="items-table">
     <thead>
       <tr>
         <th>Sr</th>
@@ -754,7 +771,8 @@ export default function SalesPage() {
         </tr>
       `).join('')}
     </tbody>
-  </table>
+    </table>
+  </div>
 
   <table class="summary-table">
   <tr>
@@ -765,7 +783,7 @@ export default function SalesPage() {
       P & F Charges
     </td>
     <td class="summary-value">
-      ${estimate.pf_charges?.toLocaleString('en-IN') || "0.00"}
+      ${pfCharges.toLocaleString('en-IN')}
     </td>
   </tr>
 
@@ -785,7 +803,7 @@ export default function SalesPage() {
       Balance Amount
     </td>
     <td class="total-value">
-      ${orderBalance.toLocaleString('en-IN')}
+      ${balanceAmount.toLocaleString('en-IN')}
     </td>
   </tr>
 
@@ -795,7 +813,7 @@ export default function SalesPage() {
       TOTAL Amount
     </td>
     <td class="total-value">
-      ${estimate.total_amount.toLocaleString('en-IN')}
+      ${grandTotal.toLocaleString('en-IN')}
     </td>
   </tr>
 </table>
