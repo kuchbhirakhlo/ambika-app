@@ -302,26 +302,29 @@ export default function SalesPage() {
     }
   };
 
-  const editOrder = async (orderId: string) => {
-    try {
-      const response = await fetch(`/api/orders/${orderId}`);
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
-      const data = await response.json();
-      setSelectedOrder(data.order);
-      // Try to load inventory, but don't fail if it doesn't
-      try {
-        await loadInventory();
-      } catch (invError) {
-        console.warn("Failed to load inventory:", invError);
-      }
-      setShowOrderEditModal(true);
-    } catch (error) {
-      console.error("Error loading order:", error);
-      setError("Failed to load order details. Please try again.");
-    }
-  };
+   const editOrder = async (orderId: string) => {
+     try {
+       const response = await fetch(`/api/orders/${orderId}`);
+       if (!response.ok) {
+         throw new Error(`Error: ${response.status}`);
+       }
+       const data = await response.json();
+       setSelectedOrder(data.order);
+       setOrderError("");
+       // Load products, customers, and inventory for the edit modal
+       try {
+         await loadProducts();
+         await loadCustomers();
+         await loadInventory();
+       } catch (loadError) {
+         console.warn("Failed to load some data for edit:", loadError);
+       }
+       setShowOrderEditModal(true);
+     } catch (error) {
+       console.error("Error loading order:", error);
+       setError("Failed to load order details. Please try again.");
+     }
+   };
 
   const generateEstimate = async (orderId: string) => {
     if (!isAdmin) {
@@ -1120,39 +1123,39 @@ export default function SalesPage() {
     setNextId(2);
   };
 
-  // Edit modal helpers: modify item quantity in selectedOrder
-  const handleEditQuantityChange = (index: number, quantity: number) => {
-    if (!selectedOrder) return;
-    const items = selectedOrder.items ? [...selectedOrder.items] : [];
-    if (!items[index]) return;
-    items[index] = { ...items[index], quantity, total: (items[index].rate || 0) * quantity } as any;
+   // Edit modal helpers: modify item quantity in selectedOrder
+   const handleEditQuantityChange = (index: number, quantity: number) => {
+     if (!selectedOrder) return;
+     const items = selectedOrder.items ? [...selectedOrder.items] : [];
+     if (!items[index]) return;
+     items[index] = { ...items[index], quantity, total: (items[index].rate || 0) * quantity };
 
-    // Recalculate totals
-    const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
+     // Recalculate totals
+     const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
 
-    setSelectedOrder({ ...selectedOrder, items, total_amount: newTotal, balance_amount: newTotal - (selectedOrder.advance_amount || 0) } as Order);
-  };
+     setSelectedOrder({ ...selectedOrder, items, total_amount: newTotal, balance_amount: newTotal - (selectedOrder.advance_amount || 0) } as Order);
+   };
 
-  const handleEditProductCodeChange = (index: number, code: string) => {
-    if (!selectedOrder) return;
-    const items = selectedOrder.items ? [...selectedOrder.items] : [];
-    if (!items[index]) return;
-    const product = products.find(p => p.code === code);
-    items[index] = {
-      ...items[index],
-      product_code: code,
-      product_name: product?.name || '',
-      category: product?.category || '',
-      size: product?.size || '',
-      rate: product?.price || 0,
-      total: (product?.price || 0) * (items[index].quantity || 1)
-    } as any;
+   const handleEditProductCodeChange = (index: number, code: string) => {
+     if (!selectedOrder) return;
+     const items = selectedOrder.items ? [...selectedOrder.items] : [];
+     if (!items[index]) return;
+     const product = products.find(p => p.code === code);
+     items[index] = {
+       ...items[index],
+       product_code: code,
+       product_name: product?.name || '',
+       category: product?.category || '',
+       size: product?.size || '',
+       rate: product?.price || 0,
+       total: (product?.price || 0) * (items[index].quantity || 1)
+     };
 
-    // Recalculate totals
-    const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
+     // Recalculate totals
+     const newTotal = items.reduce((sum, it) => sum + (it.total || 0), 0);
 
-    setSelectedOrder({ ...selectedOrder, items, total_amount: newTotal, balance_amount: newTotal - (selectedOrder.advance_amount || 0) } as Order);
-  };
+     setSelectedOrder({ ...selectedOrder, items, total_amount: newTotal, balance_amount: newTotal - (selectedOrder.advance_amount || 0) } as Order);
+   };
 
   const handleEstimateQuantityChange = (index: number, quantity: number) => {
     if (!selectedEstimate) return;
@@ -1213,57 +1216,72 @@ export default function SalesPage() {
     }
   };
 
-  const saveEditedOrder = async () => {
-    if (!selectedOrder) return;
-    try {
-      // Basic validation
-      if (!selectedOrder.items || selectedOrder.items.length === 0) {
-        alert('Order must have at least one item');
-        return;
-      }
+   const saveEditedOrder = async () => {
+     if (!selectedOrder) return;
+     try {
+       setIsSaving(true);
+       setOrderError("");
 
-      // Ensure no duplicate product codes
-      const seen = new Set<string>();
-      for (const it of selectedOrder.items) {
-        const code = (it.product_code || '').toString().trim();
-        if (!code) continue;
-        if (seen.has(code)) {
-          alert('This product code is already added to this order');
-          return;
-        }
-        seen.add(code);
-      }
+       // Basic validation
+       if (!selectedOrder.items || selectedOrder.items.length === 0) {
+         alert('Order must have at least one item');
+         setIsSaving(false);
+         return;
+       }
 
-      const payload = {
-        order_id: selectedOrder.order_id,
-        date: selectedOrder.date,
-        customer_name: selectedOrder.customer_name,
-        total_amount: selectedOrder.total_amount,
-        advance_amount: selectedOrder.advance_amount,
-        balance_amount: selectedOrder.balance_amount,
-        status: selectedOrder.status,
-        items: selectedOrder.items,
-      };
+       // Ensure no duplicate product codes
+       const seen = new Set<string>();
+       for (const it of selectedOrder.items) {
+         const code = (it.product_code || '').toString().trim();
+         if (!code) continue;
+         if (seen.has(code)) {
+           alert('This product code is already added to this order');
+           setIsSaving(false);
+           return;
+         }
+         seen.add(code);
+       }
 
-      const response = await fetch(`/api/orders/${selectedOrder._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+       const payload = {
+         order_id: selectedOrder.order_id,
+         date: selectedOrder.date,
+         customer_name: selectedOrder.customer_name,
+         total_amount: selectedOrder.total_amount,
+         advance_amount: selectedOrder.advance_amount,
+         balance_amount: selectedOrder.balance_amount,
+         status: selectedOrder.status,
+         items: selectedOrder.items.map(item => ({
+           product_code: item.product_code,
+           product_name: item.product_name,
+           category: item.category,
+           size: item.size,
+           quantity: item.quantity,
+           rate: item.rate,
+           total: item.total
+         })),
+       };
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || `Error: ${response.status}`);
-      }
+       const response = await fetch(`/api/orders/${selectedOrder._id}`, {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(payload),
+       });
 
-      alert('Order updated successfully');
-      await loadOrders();
-      closeOrderEditModal();
-    } catch (err: any) {
-      console.error('Error updating order:', err);
-      alert(err.message || 'Failed to update order');
-    }
-  };
+       if (!response.ok) {
+         const err = await response.json();
+         throw new Error(err.error || `Error: ${response.status}`);
+       }
+
+       alert('Order updated successfully');
+       await loadOrders();
+       closeOrderEditModal();
+     } catch (err: any) {
+       console.error('Error updating order:', err);
+       alert(err.message || 'Failed to update order');
+     } finally {
+       setIsSaving(false);
+     }
+   };
 
   const saveEditedEstimate = async () => {
     if (!selectedEstimate) return;
@@ -1481,10 +1499,11 @@ export default function SalesPage() {
     setSelectedOrder(null);
   };
 
-  const closeOrderEditModal = () => {
-    setShowOrderEditModal(false);
-    setSelectedOrder(null);
-  };
+   const closeOrderEditModal = () => {
+     setShowOrderEditModal(false);
+     setSelectedOrder(null);
+     setOrderError("");
+   };
 
   const closeEstimateViewModal = () => {
     setShowEstimateViewModal(false);
@@ -2141,6 +2160,7 @@ export default function SalesPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                      <thead className="bg-gray-50">
                         <tr>
+                          <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sr</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
                           <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -2152,47 +2172,268 @@ export default function SalesPage() {
                      </thead>
                      <tbody className="bg-white divide-y divide-gray-200">
                          {selectedOrder.items.map((item, index) => (
-                          <tr key={index}>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.product_name}</td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                  <button
-                    onClick={() => {
-                      if (!selectedOrder) return;
-                      const nextId = (selectedOrder.items?.length || 0) + 1;
-                      const newItem = { id: nextId, product_code: "", product_name: "", category: "", size: "", quantity: 1, rate: 0, total: 0 };
-                      setSelectedOrder({
-                        ...selectedOrder,
-                        items: [...(selectedOrder.items || []), newItem]
-                      });
-                    }}
-                    className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-                  >
-                    Add Product
-                  </button>
+                           <tr key={index}>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">{item.product_code}</td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.product_name}</td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.category}</td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.size}</td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate}</td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total}</td>
+                           </tr>
+                         ))}
+                     </tbody>
+                   </table>
+                 </div>
+               )}
+
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={closeOrderViewModal}
+                  className="bg-gray-500 text-black px-4 py-2 rounded-md hover:bg-gray-600"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Edit Modal */}
+      {showOrderEditModal && selectedOrder && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-5xl shadow-lg rounded-md bg-white">
+            <div className="flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">Edit Order</h2>
+                <button
+                  onClick={closeOrderEditModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {orderError && (
+                <div className="mb-4 p-3 rounded-md bg-red-100 text-red-700">
+                  {orderError}
                 </div>
               )}
+
+              <div className="bg-gray-50 p-4 rounded-md mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Order Number</label>
+                    <input
+                      type="text"
+                      value={selectedOrder.order_id}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 text-black rounded-md shadow-sm focus:outline-none bg-gray-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={selectedOrder.date ? new Date(selectedOrder.date).toISOString().split('T')[0] : ''}
+                      onChange={(e) => setSelectedOrder({ ...selectedOrder, date: new Date(e.target.value).toISOString() })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
+                    <select
+                      value={selectedOrder.customer_name}
+                      onChange={(e) => {
+                        const selectedCustomer = customers.find(c => c.name === e.target.value);
+                        setSelectedOrder({
+                          ...selectedOrder,
+                          customer_name: e.target.value,
+                          agent_name: selectedCustomer?.agent || selectedOrder.agent_name
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    >
+                      <option value="">Select a customer</option>
+                      {customers.map(customer => (
+                        <option key={customer._id} value={customer.name}>
+                          {customer.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Agent Name</label>
+                    <input
+                      type="text"
+                      value={selectedOrder.agent_name || ''}
+                      readOnly
+                      className="w-full px-3 py-2 border text-black border-gray-300 rounded-md shadow-sm focus:outline-none bg-gray-100"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <h3 className="text-lg font-semibold mb-2 border-b pb-2">Order Items</h3>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sr</th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Code</th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Availability</th>
+                      <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedOrder.items && selectedOrder.items.map((item, index) => (
+                      <tr key={index}>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={item.product_code}
+                            onChange={(e) => handleEditProductCodeChange(index, e.target.value)}
+                            className="w-full max-w-[140px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
+                            list="product-list-edit"
+                          />
+                          <datalist id="product-list-edit">
+                            {products.map(product => (
+                              <option key={product._id} value={product.code} />
+                            ))}
+                          </datalist>
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          <input
+                            type="number"
+                            min="0"
+                            value={item.quantity}
+                            onChange={(e) => handleEditQuantityChange(index, parseInt(e.target.value) || 0)}
+                            className="w-full max-w-[80px] px-2 py-1 border border-gray-300 rounded-md text-gray-900"
+                          />
+                        </td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.rate || 0}</td>
+                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">₹{item.total || 0}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            getStockLevelColor(inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0)
+                          }`}>
+                            {inventory.find(inv => inv.product_code === item.product_code)?.quantity || 0}
+                          </span>
+                        </td>
+                        <td className="px-3 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => {
+                              if (!selectedOrder) return;
+                              const newItems = [...selectedOrder.items!];
+                              newItems.splice(index, 1);
+                              const recalculated = newItems.map((it, i) => ({
+                                ...it,
+                                id: i + 1
+                              }));
+                              const newTotal = recalculated.reduce((sum, it) => sum + (it.total || 0), 0);
+                              setSelectedOrder({
+                                ...selectedOrder,
+                                items: recalculated,
+                                total_amount: newTotal,
+                                balance_amount: newTotal - (selectedOrder.advance_amount || 0)
+                              });
+                            }}
+                            className="text-red-600 hover:text-red-800 mr-2"
+                            disabled={selectedOrder.items.length === 1}
+                          >
+                            Remove
+                          </button>
+                          {index === selectedOrder.items.length - 1 && (
+                            <button
+                              onClick={() => {
+                                const newItem = {
+                                  id: selectedOrder.items!.length + 1,
+                                  product_code: "",
+                                  product_name: "",
+                                  category: "",
+                                  size: "",
+                                  quantity: 1,
+                                  rate: 0,
+                                  total: 0
+                                };
+                                setSelectedOrder({
+                                  ...selectedOrder,
+                                  items: [...selectedOrder.items!, newItem]
+                                });
+                              }}
+                              className="text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded-md"
+                            >
+                              Add
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Payment Summary */}
+              <div className="mt-6 bg-gray-50 p-4 rounded-md">
+                <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Total (₹)</label>
+                      <input
+                        type="text"
+                        value={selectedOrder.total_amount}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none bg-gray-100 text-gray-900"
+                      />
+                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Advance (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={selectedOrder.advance_amount || 0}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setSelectedOrder({
+                          ...selectedOrder,
+                          advance_amount: val,
+                          balance_amount: (selectedOrder.total_amount || 0) - val
+                        });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    />
+                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Balance (₹)</label>
+                      <input
+                        type="text"
+                        value={selectedOrder.balance_amount || 0}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none bg-gray-100 text-gray-900"
+                      />
+                    </div>
+                </div>
+              </div>
 
               <div className="flex justify-end space-x-2 mt-6">
                 <button
                   onClick={closeOrderEditModal}
                   className="bg-gray-500 text-black px-4 py-2 rounded-md hover:bg-gray-600"
+                  disabled={isSaving}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={saveEditedOrder}
                   className="bg-blue-600 text-black px-4 py-2 rounded-md hover:bg-blue-700"
+                  disabled={isSaving}
                 >
-                  Save Changes
+                  {isSaving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </div>
